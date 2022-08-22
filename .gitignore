@@ -1,0 +1,30 @@
+# No runs need be pushed
+/run*/
+
+# No need for test_runs
+/test_runs/
+
+# No need for PDBs or PDBQTs
+*.pdb
+*.pdbqt
+
+# Sublime projects
+*.sublime-project
+
+# Sublime workspaces
+*.sublime-workspace
+
+# Images
+*.png
+
+# Saved numpy objects
+*.npy
+
+# Don't need to track server jobs
+*.sh
+
+# Don't need _pycache_ folder
+__pycache__/**
+
+# or pycache files
+#*.pyc
