@@ -645,6 +645,8 @@ t1=time.time()
 elapsed=t1-t0
 runtime=time.strftime("%H:%M:%S",time.gmtime(elapsed))
 
+print('\nRUNTIME: '+runtime)
+
 # writing a log file for the overall run
 with open('RUN_LOG','w') as log:
     log.write('STARTING MOL: '+parent_name+'\n')

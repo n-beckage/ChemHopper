@@ -229,7 +229,7 @@ def check_cylces(smii):
 ## cpu - number of CPUs to use; deafult is to detect the number available and use those
 ## num_modes  max number of binding modes to generate
 ## score_only - can the search space be omitted? true/false
-def configure(receptor,ligand,iteration='test',fname="config",size=20,exhaustiveness=8,center_x=12.95,center_y=15.76,center_z=2.28,out='vina_outs/out',cpu=2,num_modes=9,score_only=False):
+def configure(receptor,ligand,iteration='test',fname="config",size=20,exhaustiveness=8,center_x=12.95,center_y=15.76,center_z=2.28,out='vina_outs/out',cpu=16,num_modes=9,score_only=False):
     config_i=fname+"_"+iteration+'.txt'
     out_name=out+"_"+iteration
     os.chdir('configs')
@@ -254,21 +254,21 @@ def configure(receptor,ligand,iteration='test',fname="config",size=20,exhaustive
 ### prepares the receptor for docking with vina, returns the file name in .pdbqt format
 ## prot_file - the name of the pdb file of the protein/pocket/receptor
 def prepare_receptor(prot_file):
-    sp.call("python2 C:/Users/nbeck/Desktop/Summer_Research_2022/docking/prepare_receptor4.py -r "+prot_file+" -v",shell=True)
+    sp.call("pythonsh ~/Desktop/Summer_Research_2022/ChemHopper/docking/prepare_receptor4.py -r "+prot_file+" -v",shell=True)
     return prot_file+'qt'
 
 ### prepares the ligand for docking with vina, returns the file name in .pdbqt format
 ## lig_file - the name of the pdb file of the mol/ligand
 def prepare_ligand(lig_file):
     os.chdir('mols')
-    sp.call("python2 C:/Users/nbeck/Desktop/Summer_Research_2022/docking/prepare_ligand4.py -l "+lig_file+" -v",shell=True)
+    sp.call("pythonsh ~/Desktop/Summer_Research_2022/ChemHopper/docking/prepare_ligand4.py -l "+lig_file+" -v",shell=True)
     os.chdir('../')
     return lig_file+'qt'
 
 # propofol in the bound position is the reference ligand
 # here I will prepare the refernce like any other ligand and run vina on it to see if I get similar results with propofol created from a smile
 # ref_lig="reference_ligand.pdb"
-# sp.call("python2 C:/Users/nbeck/Desktop/Summer_Research_2022/docking/prepare_ligand4.py -l "+ref_lig+" -v",shell=True)
+# sp.call("pythonsh /Desktop/Summer_Research_2022/ChemHopper/docking/prepare_ligand4.py -l "+ref_lig+" -v",shell=True)
 # ref_lig+='qt'
 # configure(prot_file,ref_lig,out='aligned_results')
 # sp.call("vina --config=config.txt",shell=True)
@@ -310,7 +310,7 @@ def dock_it(smile,iiter='test'):
     # runs vina and logs results
     logfile="logs/log_"+iiter+".txt"
     with open(logfile,'w') as log:
-        run=sp.run("vina --config=configs/"+configuration,shell=True,stdout=log)
+        run=sp.run("vina_1.2.3_linux_x86_64 --config=configs/"+configuration,shell=True,stdout=log)
     # splitting output
     sp.call("vina_split --input "+out_name+'.pdbqt',shell=True)
     # deleting the original out file from vina plus all but the best modes from vina_split
@@ -597,7 +597,7 @@ for gen in range(depth):
             results.append((smi,dock_it(smi,iiter)))
         except Exception as e:
             logging.exception("IITER: "+str(iiter)+"; TYPE: "+type(e).__name__)
-        # #for testing purposes (will not run dock_it())
+        # # for testing purposes (will not run dock_it())
         # try:
         #     if i%7==0:
         #         ran.uniform(whupsies)
