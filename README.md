@@ -8,6 +8,7 @@
   - Allowing our search to move backwards seems like a good way to get trapped in local minima, doesn't it?
 - What Vina parameters did you/can you use in order to get more reliable docking scores?
   - I know Vina has a monte carlo algorithm, so there is a degree of stochasticity (IOW the algorithm is not really consistent; the same docking parameters will give different scores over and over again)
+- Did you have the halogen mutations/additions disabled in your algorithm on purpose? If so what was the logic behind that?
 
 ### 8/15/22
 

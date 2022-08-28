@@ -229,7 +229,7 @@ def check_cylces(smii):
 ## cpu - number of CPUs to use; deafult is to detect the number available and use those
 ## num_modes  max number of binding modes to generate
 ## score_only - can the search space be omitted? true/false
-def configure(receptor,ligand,iteration='test',fname="config",size=20,exhaustiveness=8,center_x=12.95,center_y=15.76,center_z=2.28,out='vina_outs/out',cpu=2,num_modes=9,score_only=False):
+def configure(receptor,ligand,iteration='test',fname="config",size=20,exhaustiveness=32,center_x=12.95,center_y=15.76,center_z=2.28,out='vina_outs/out',cpu=2,num_modes=9,score_only=False):
     config_i=fname+"_"+iteration+'.txt'
     out_name=out+"_"+iteration
     os.chdir('configs')
@@ -306,7 +306,7 @@ def dock_it(smile,iiter='test'):
     Chem.rdmolfiles.MolToPDBFile(mh,lig_pdb)
     # prepares ligand and returns lig_pdbqt
     lig_pdbqt=prepare_ligand(lig_pdb)
-    configuration,out_name=configure(prot_pdbqt,lig_pdbqt,iiter)
+    configuration,out_name=configure(prot_pdbqt,lig_pdbqt,iiter,exhaustiveness=exhaust)
     # runs vina and logs results
     logfile="logs/log_"+iiter+".txt"
     with open(logfile,'w') as log:
@@ -400,6 +400,11 @@ parent_0='CC(C)C1=C(C(=CC=C1)C(C)C)O'
 
 # defining the depth of our search
 depth=10
+
+# defining the exhaustiveness for Autodock Vina
+exhaust=32
+
+print('\n############\n DEPTH = '+str(depth)+' \n############\n')
 
 # for keeping track of molecules that do not embed
 no_embed=[]
@@ -588,7 +593,11 @@ for gen in range(depth):
 
     # time to dock each descendant in uniq_desc and record results
     results=[] # the results for current GEN ONLY
+
     ### CHECKPOINT
+
+    print('\n################\n DEPTH = '+str(gen+1)+'/'+str(depth)+' \n################\n')
+
     print("# OF UNIQUE DESC:",str(len(uniq_desc)))
     for i,smi in enumerate(uniq_desc):
         iiter=str(gen+1)+"."+str(i)
@@ -597,7 +606,7 @@ for gen in range(depth):
             results.append((smi,dock_it(smi,iiter)))
         except Exception as e:
             logging.exception("IITER: "+str(iiter)+"; TYPE: "+type(e).__name__)
-        # #for testing purposes (will not run dock_it())
+        # # for testing purposes (will not run dock_it())
         # try:
         #     if i%7==0:
         #         ran.uniform(whupsies)
@@ -645,12 +654,13 @@ runtime=time.strftime("%H:%M:%S",time.gmtime(elapsed))
 print('\nRUNTIME: '+runtime)
 
 # writing a log file for the overall run
-with open('RUN_LOG','w') as log:
+with open('RUN_LOG.txt','w') as log:
     log.write('STARTING MOL: '+parent_name+'\n')
     log.write('    SMILE: '+parent_0+'\n')
     log.write('RECEPTOR: 1e7a_aligned\n')
     log.write('    POCKET: S3\n')
-    log.write('DEPTH: '+str(depth)+'\n\n')
+    log.write('DEPTH: '+str(depth)+'\n')
+    log.write('EXHAUSTIVENESS: '+str(exhaust)+'\n\n')
     log.write('RUNTIME: '+runtime+'\n\n')
     log.write('Number of mols that could not be embedded: '+str(len(no_embed))+'\n\n')
     log.write(table)
