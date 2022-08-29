@@ -1,5 +1,15 @@
 # ChemHopper Project README
 
+### 8/29/22
+
+Oftentimes the best molecule chosen from generation 1 is not consistent across runs with the following exceptions:
+
+- run 7 and 11 have the same best gen 1
+
+- 13 and 5 as well
+
+
+
 #### Questions for Jacob
 
 - Is stereoisomers accounted for when generating new molecules? If so are they considered "unique" mols?
@@ -8,7 +18,8 @@
   - Allowing our search to move backwards seems like a good way to get trapped in local minima, doesn't it?
 - What Vina parameters did you/can you use in order to get more reliable docking scores?
   - I know Vina has a monte carlo algorithm, so there is a degree of stochasticity (IOW the algorithm is not really consistent; the same docking parameters will give different scores over and over again)
-- Did you have the halogen mutations/additions disabled in your algorithm on purpose? If so what was the logic behind that?
+- Is there a reason why in your script you commented out halogen transformations? If so why?
+  - In my runs adding fluorines or chlorines seems to be a pretty favored choice for the algorithm and I'm not sure how realistic that is
 
 ### 8/15/22
 
@@ -32,10 +43,10 @@
 
 - congruent molecules are made across generations via mutation. Say the best mol from the previous generation is butane, and the best mol of the current generation is 1-chloropropane (mutating a terminal carbon to a chlorine). Given that the first parent was propane (butane being a descendant via adding a carbon to the end of propane), 1-chloropropane was already created and docked in the first generation. Now in the second gen, it is created and tested again via mutation of butane. This is a big waste of computational resources and should be avoided.
 
-  - **This has been ~tentatively~ fixed by implementing sets** 
+  - **This has been fixed by implementing sets** 
   - Also, it speaks to the large influence stochasticity is having within autodock vina right now. What ends up being the best  1st-gen descendant of propofol is inconsistent so far. Look at the gen 1 grids for different runs and compare highlighted performers to see for your self 
 
--  Add organizing folders to contain log files, config files, pdbs and pdbqts, etc
+-  **Done** - organizing folders to contain log files, config files, pdbs and pdbqts, etc
 
   
 
