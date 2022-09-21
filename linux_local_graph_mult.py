@@ -398,13 +398,22 @@ parent_0='CC(C)C1=C(C(=CC=C1)C(C)C)O'
 #propofol=Chem.MolFromSmiles(propofol)
 #Draw.MolToFile(propofol,"propofol.png")
 
+# defining the exhaustiveness for Autodock Vina, now using keyboard input:
+print("\n\n\nWelcome to Chemical Space!\nHow deep will you go?")
+
 # defining the depth of our search
-depth=10
+str_depth=input("depth = ")
+depth=int(str_depth)
 
-# defining the exhaustiveness for Autodock Vina
-exhaust=32
+print("\nHow exhaustive will your search be?")
 
-print('\n############\n DEPTH = '+str(depth)+' \n############\n')
+# taking in exhaustiveness hyperparameter
+str_exhaust=input("exhaustiveness = ")
+exhaust=int(str_exhaust)
+
+print("\n\nGreat! Let's begin")
+
+print('\n\n############\n DEPTH = '+str(depth)+' \n############\n')
 
 # for keeping track of molecules that do not embed
 no_embed=[]
