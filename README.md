@@ -18,22 +18,28 @@ Oftentimes the best molecule chosen from generation 1 is not consistent across r
 
 - Is stereoisomers accounted for when generating new molecules? If so are they considered "unique" mols?
 
+  - RDkit has functions to enumerate through stereocenters  - conisder enumerating through the
+
+  - RA score - how synthesizable is a molcule
+
 - Where do I find other ligands for serum albumin that target the same pocket as propofol?
 
 - Congruency bug - does it make sense to go backward in our search of chemical space? (removing atoms)
-  - Allowing our search to move backwards seems like a good way to get trapped in local minima, doesn't it?
-  
+
 - What Vina parameters did you/can you use in order to get more reliable docking scores?
   - I know Vina has a monte carlo algorithm, so there is a degree of stochasticity (IOW the algorithm is not really consistent; the same docking parameters will give different scores over and over again)
-  - Exhaustiveness
-  
+  - Exhaustiveness INCREASE
+
 - Is there a reason why in your script you commented out halogen transformations? If so why?
   - In my runs adding fluorines or chlorines seems to be a pretty favored choice for the algorithm and I'm not sure how realistic that is
-  
+  - Limit to maybe 2 or 3 halogenations
+
   **Where to go from here**
-  
+
   1. First thing first - *need to make vina calculate more consistent dockings scores - or else use a different method (free energy?) entirely*
      1. Shouldn't runs with identical parameters give at least near-identical results? Right now it's rare for vina to consistently decide which molecule one gen removed from the original parent is the best, let alone molecules at a greater depth
+        1. **Solution: increase exhaustiveness *even more***
+           1. Exhaustiveness has a roughly linear relationship with run time - doubling exhaustiveness will double run time
   2. *Changing the structure of the algorithm*
      1. right now the program sort of 'marches forward' until it reaches the required depth. It does pick the molecule with the best docking score from each generation, but said molecule isn't necessarily better than it's parent
         1. This has the effect of skirting potential local minima; it may give a better picture of the overall energy landscape (assuming vina results can be trusted), but it will not directly seek out local minima
@@ -41,6 +47,7 @@ Oftentimes the best molecule chosen from generation 1 is not consistent across r
         1. Re-docking of course is computationally expensive and will likely greatly lengthen the run time of the program. Will probably move away from `depth` as the guiding parameter and instead just have a `do while` loop to run the algorithm until a local minimum is found
   3. Spoke with Jianing about *validating the algorithm* with another S3 ligand - traversing from propofol to the second ligand with the algorithm would validate the method
      1. Where to find a ligand like this
+        1. Try aligning pdb files to 1e7a
   4. *Future Direction* - moving away from vina and rdkit to using a schrodinger's python API to directly manipulate ligands whilst still in the pocket and calculating the effect a given change has on the free energy
      1. This method will be more accurate than constantly redocking with vina, which has to try docking molecules starting at a random conformation
   5. *AutoGrow4* - sounds a lot like our algorithm. You mentioned it in your own research proposal claiming that it had a vague continuous definition of chemical space, whereas our algorithm defines CHSP discretely. Can you speak more to that difference?
