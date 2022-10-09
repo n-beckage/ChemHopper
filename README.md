@@ -1,5 +1,9 @@
 # ChemHopper Project README
 
+### BUG
+- runtime is not acurrate.. runs 21 and 22 take over 2 days but the runtime does not reflect that. Maybe the timer oonly runs when the python codes is being executed, and not when Vina is running.
+this would explain why the runtime for these runs is so much slower than it actually was.
+
 ### 8/29/22
 
 Oftentimes the best molecule chosen from generation 1 is not consistent across runs with the following exceptions:
