@@ -1,5 +1,19 @@
 # ChemHopper Project README
 
+### *BUG -10/9/22*
+
+**Problem**: the program is not timing itself accurately - the displayed runtime is significantly less than what it actually was.
+
+This came up with the runs 21/22, where each program took at least 48 hours, however the the runtime in the `RUN_LOG` file indicated a total runtime less than 24 hours. This is clearly not an accurate runtime. 
+
+**1st Hypothesis**: I suspect the timer in the python script is only recording the time that the python code itself takes to run; IOW it is not keeping time when Vina is running. Since Vina is the lengthiest component of the program, especially at high exhaustiveness (runs 21/22 were at e512), this would explain why the recorded runtime is so much less than the actual runtime.
+
+**1st Solution**: If the above hypothesis is correct, then I need to find a way to time the program outside of python, maybe through some external timer that can be run independently on the Linux  terminal.
+
+**2nd Hypothesis**: With the latest runs (21/22), exhaustiveness was too high and maxed out the cpus on the local linux machine. Each was held at constant 100% usage. The computer didn't crash or freeze, however it really couldn't do much else but run the programs; it was very laggy when I tried to browse the web or do anything. I suppose it's possible that the python timer itself was lagging, especially when Vina was running (which would pretty much, between the two programs, be all the time). This would explain why the recorded runtime was less than the actual runtime.
+
+**2nd Solution**: Try a run with high exhaustiveness run one at time and see if it is accurate. 1st solution could also confirm/reject this hypothesis.
+
 **Immediate Goals:**
 
 - **Explore the local chemical space around a ligand**
