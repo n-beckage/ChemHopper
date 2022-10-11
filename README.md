@@ -4,6 +4,33 @@
 - runtime is not acurrate.. runs 21 and 22 take over 2 days but the runtime does not reflect that. Maybe the timer oonly runs when the python codes is being executed, and not when Vina is running.
 this would explain why the runtime for these runs is so much slower than it actually was.
 
+**Immediate Goals:**
+
+- **Explore the local chemical space around a ligand**
+- **Start with a ligand that has a chemical series associated with it**
+- **let's go n steps away from a ligand and characteize that chemical space with the tools we have**
+- **Preserve the graph structure** - make graph with tmap
+- Abstract for this!! submit for the ACS meeting Spring 2023
+
+### 9/27/22
+
+Meeting With Jacob and Jianing
+
+- Start with a crystal structure and build in 3D, ideally within the same pocket.  That way the binding conformation would be conserved
+- Maybe shrodinger has reaction data types to store each transformation as a reaction
+- Matched molecular pair analysis 
+  - MMPDB - open sourced 
+  - MPA is often used for QSAR - seeing how an incremental change affects
+- Keep track of changes through a dictionary of possible changes.
+- Find cases of proteins where and pockets with multiple ligands for the same pocket
+- Out method is unique in it's sampling 
+- Our algorithm is only as good as whatever scoring function you use
+- At the end of the day we need experimental data to validate any novel scaffolds
+- Steps to take to grow confidence in the method:
+  - Design a function to assess how close to a known conformation a given pose
+- How many molecules are 
+
+
 ### 8/29/22
 
 Oftentimes the best molecule chosen from generation 1 is not consistent across runs with the following exceptions:
