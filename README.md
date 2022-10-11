@@ -1,5 +1,11 @@
 # ChemHopper Project Shop Log
 
+### 10/11/22
+
+Successfully separated functions into separate script, `ChemTools.py`, from `test_linux`.
+
+- Noticed that chemical transformations are not as robust as I thought - see the grid produced by  the test run with ethane. When carbon is mutated to oxygen or nitrogen, bond mutations should be possible but are not explored. Neither is the adding a triple bont to nitrogen, which should be possible.
+
 ### 10/10/22 - Back into the garage
 
 **Chemical Neighborhood Exploration**

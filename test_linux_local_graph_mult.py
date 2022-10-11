@@ -253,6 +253,8 @@ for gen in range(depth):
     
     # code to remove duplicate smile strings for current generation and prvious generation. Since each generation will be unique, there is no need to continuous check ALL previous generations each
     # time we go through the loop; this line of code has a recursive structure
+    # uniq_desc - list on unique descendants for current generation
+    # master_set - set of ALL descendants (no duplicates)
     uniq_desc=list(set(all_desc).difference(master_set))
     master_set=master_set.union(uniq_desc)
 
@@ -261,9 +263,9 @@ for gen in range(depth):
 
     ### CHECKPOINT
 
-    print('\n################\n DEPTH = '+str(gen+1)+'/'+str(depth)+' \n################\n')
+    print('\n################\n DEPTH = '+str(gen+1)+'/'+str(depth)+' \n################')
 
-    print("# OF UNIQUE DESC:",str(len(uniq_desc)))
+    print("# OF UNIQUE DESC:",str(len(uniq_desc)),"\n")
     for i,smi in enumerate(uniq_desc):
         iiter=str(gen+1)+"."+str(i)
         print("ITER =",str(iiter))
@@ -299,7 +301,10 @@ for gen in range(depth):
         uniq_mols.append(mol)
     # img=Draw.MolsToGridImage(uniq_mols,molsPerRow=int(len(uniq_mols)/10),subImgSize=(350,350),legends=[str(a) for a in affinities],maxMols=len(uniq_mols))
 
-    save_grids(uniq_mols,affinities,8,10)
+    # returns index of the top molecule in uniq_desc
+    best_index=uniq_desc.index(best_path[-1][0])
+    top=uniq_mols[best_index]
+    save_grids(uniq_mols,top,affinities,gen,8,10)
 
     print("BEST PATH:\n",best_path)
 
