@@ -29,7 +29,7 @@ n_save=5 #save top n_save for next round
 
 ######################################################### BEGIN SCRIPT ########################################################################################
 
-# making directories top organize our output files
+# making directories to organize our output files
 os.mkdir("logs")
 os.mkdir("np_objs")
 os.mkdir("configs")
@@ -268,7 +268,7 @@ for gen in range(depth):
         iiter=str(gen+1)+"."+str(i)
         print("ITER =",str(iiter))
         try:
-            results.append((smi,dock_it(smi,iiter)))
+            results.append((smi,dock_it(smi,prot_pdbqt,exhaust,iiter)))
         except Exception as e:
             logging.exception("IITER: "+str(iiter)+"; TYPE: "+type(e).__name__)
         # # for testing purposes (will not run dock_it())
