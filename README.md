@@ -15,13 +15,6 @@ For **Ligand Optimization**, will need to limit the number of halogenations
 - i.e if current parent has 1 or 2 halogenations, stop adding more
 - *Foresight Problem*: what if the best ligand is not found by constantly going with the best child of a given generation? imagine that the nth descendant of a so-so child is better than the nth descendant of the "best child" lineage? IOW, what if the path to the best ligand is not smooth like a well? what if it is more like a volcano?
 
-
-
-### BUG
-
-- runtime is not accurate.. runs 21 and 22 take over 2 days but the runtime does not reflect that. Maybe the timer only runs when the python codes is being executed, and not when Vina is running.
-this would explain why the runtime for these runs is so much slower than it actually was.
-
 ### *BUG -10/9/22*
 
 **Problem**: the program is not timing itself accurately - the displayed runtime is significantly less than what it actually was.
