@@ -1,4 +1,26 @@
-# ChemHopper Project README
+# ChemHopper Project Shop Log
+
+### 10/10/22 - Back into the garage
+
+**Chemical Neighborhood Exploration**
+
+1. Enumerate all *k*-nearest chemical neighbors, where *k* = `depth`
+   1. No duplicates
+   2. Graph structure (IOW edges) should be preserved
+2. Complete molecular editing gauntlet
+   1. Add rules for intermolecular bonds (rings)
+
+For **Ligand Optimization**, will need to limit the number of halogenations
+
+- i.e if current parent has 1 or 2 halogenations, stop adding more
+- *Foresight Problem*: what if the best ligand is not found by constantly going with the best child of a given generation? imagine that the nth descendant of a so-so child is better than the nth descendant of the "best child" lineage? IOW, what if the path to the best ligand is not smooth like a well? what if it is more like a volcano?
+
+
+
+### BUG
+
+- runtime is not accurate.. runs 21 and 22 take over 2 days but the runtime does not reflect that. Maybe the timer only runs when the python codes is being executed, and not when Vina is running.
+this would explain why the runtime for these runs is so much slower than it actually was.
 
 ### *BUG -10/9/22*
 
@@ -39,7 +61,6 @@ Meeting With Jacob and Jianing
 - Steps to take to grow confidence in the method:
   - Design a function to assess how close to a known conformation a given pose
 - How many molecules are 
-
 
 
 ### 8/29/22
@@ -94,7 +115,7 @@ Oftentimes the best molecule chosen from generation 1 is not consistent across r
 
 ### 8/15/22
 
-#### Congruency Bug - bring this up with Jacob
+#### Congruency Bug - FIXED
 
 **Description**: the molecular editing gauntlet allows for adding an atom, mutating an atom/bond, and removing an atom/bond. These later two transformations represent potential backwards moves in chemical space, potentially leading to congruent molecules across multiple generations (not just immediately neighboring generations either). This is a highly inefficient bug as it wastes resources docking molecules that have already been tested. So the question remains, how do we ensure that no duplicate molecules inadvertently recreated through the gauntlet get docked more than once?
 
@@ -110,7 +131,7 @@ Oftentimes the best molecule chosen from generation 1 is not consistent across r
 
 #### Bugs to fix
 
-- in the grid images produced each loop. sometimes more than one molecule is highlighted. This is because if the best molecule is the result of a mutation, not an addition, then at least one other molecule created via addition will share the substructure of the best mutated molecule (for example, a molecule might gain a bond to chlorine (addition), whereas another may mutate a carbon to a chlorine. These two molecules would share a common substructure)
+- **ACTIVE ** the grid images produced each loop. sometimes more than one molecule is highlighted. This is because if the best molecule is the result of a mutation, not an addition, then at least one other molecule created via addition will share the substructure of the best mutated molecule (for example, a molecule might gain a bond to chlorine (addition), whereas another may mutate a carbon to a chlorine. These two molecules would share a common substructure)
 
 - congruent molecules are made across generations via mutation. Say the best mol from the previous generation is butane, and the best mol of the current generation is 1-chloropropane (mutating a terminal carbon to a chlorine). Given that the first parent was propane (butane being a descendant via adding a carbon to the end of propane), 1-chloropropane was already created and docked in the first generation. Now in the second gen, it is created and tested again via mutation of butane. This is a big waste of computational resources and should be avoided.
 

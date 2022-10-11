@@ -268,7 +268,7 @@ def prepare_ligand(lig_file):
 # propofol in the bound position is the reference ligand
 # here I will prepare the refernce like any other ligand and run vina on it to see if I get similar results with propofol created from a smile
 # ref_lig="reference_ligand.pdb"
-# sp.call("pythonsh /Desktop/Summer_Research_2022/ChemHopper/docking/prepare_ligand4.py -l "+ref_lig+" -v",shell=True)
+# sp.call("pythonsh ~/Desktop/Summer_Research_2022/ChemHopper/docking/prepare_ligand4.py -l "+ref_lig+" -v",shell=True)
 # ref_lig+='qt'
 # configure(prot_file,ref_lig,out='aligned_results')
 # sp.call("vina --config=config.txt",shell=True)
