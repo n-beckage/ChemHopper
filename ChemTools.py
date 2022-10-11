@@ -336,10 +336,11 @@ def dock_it(lig_smile,prot_pdbqt,exhaustiveness=8,iiter='test'):
 
 ### returns a list containg the grid images of the molecules and their correpsonding affinities
 ## mols - the list of mol objects to be printed
+## top - best molecule for the generation (to be highlighted)
 ## affinities - the corresponding affinities of the mols - SAME INDEXING IS ASSUMED
 ## row_len - # of mols to be printed per grid row
 ## rows_per_page - # of rows of mols to be printed per page
-def save_grids(mols,affinities,row_len=8,col_len=10,highlight=True):
+def save_grids(mols,top,affinities,gen,row_len=8,col_len=10,highlight=True):
     num_mols=len(mols)
     nrows=num_mols/row_len
     if not nrows.is_integer():
@@ -353,9 +354,6 @@ def save_grids(mols,affinities,row_len=8,col_len=10,highlight=True):
     for i in range(0, len(mols), mols_per_pg):
         mol_chunks.append(mols[i:i+mols_per_pg])
         affin_chunks.append(affinities[i:i+mols_per_pg])
-    # returns index of the top molecule in uniq_desc
-    best_index=uniq_desc.index(best_path[-1][0])
-    top=uniq_mols[best_index]
     grids=[]
     for i in range(int(npgs)):
         if highlight==True:
