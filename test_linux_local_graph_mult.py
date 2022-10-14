@@ -1,7 +1,7 @@
 # record start time
 import time
 t0=time.time()
-from ChemTools import *
+from ChemToolsLn import *
 
 from rdkit import Chem
 from rdkit.Chem import AllChem

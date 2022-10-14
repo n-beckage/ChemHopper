@@ -1,10 +1,18 @@
 # ChemHopper Project Shop Log
 
+### 10/14/22
+
+**FIXED:** molecules are not being printed to grids in the same order each run, when ideally they would be.
+
+- **Solution:** Now order is preserved when in `uniq_desc` when removing duplicates in `all_desc`, and when `uniq_desc` is added to `master_set`. IOW, grids will print in consistent order across runs
+
 ### 10/11/22
 
-Successfully separated functions into separate script, `ChemTools.py`, from `test_linux`.
+Successfully separated functions into separate script, `ChemToolsLn.py`, from `test_linux`.
 
-- Noticed that chemical transformations are not as robust as I thought - see the grid produced by  the test run with ethane. When carbon is mutated to oxygen or nitrogen, bond mutations should be possible but are not explored. Neither is the adding a triple bont to nitrogen, which should be possible.
+- `ChemToolsWd.py` also runs successfully with `test_local` (windows version of program)
+
+- Noticed that chemical transformations are not as robust as I thought - see the grid produced by  the test run with ethane. When carbon is mutated to oxygen or nitrogen, bond mutations should be possible but are not explored. Neither is the adding a triple bond to nitrogen, which should be possible.
 
 ### 10/10/22 - Back into the garage
 

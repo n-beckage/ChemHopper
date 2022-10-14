@@ -255,14 +255,14 @@ def configure(receptor,ligand,iteration='test',fname="config",size=20,exhaustive
 ### prepares the receptor for docking with vina, returns the file name in .pdbqt format
 ## prot_file - the name of the pdb file of the protein/pocket/receptor
 def prepare_receptor(prot_file):
-    sp.call("pythonsh ~/Desktop/ChemHopper/docking/prepare_receptor4.py -r "+prot_file+" -v",shell=True)
+    sp.call("python2 C:/Users/nbeck/Desktop/Summer_Research_2022/docking/prepare_receptor4.py -r "+prot_file+" -v",shell=True)
     return prot_file+'qt'
 
 ### prepares the ligand for docking with vina, returns the file name in .pdbqt format
 ## lig_file - the name of the pdb file of the mol/ligand
 def prepare_ligand(lig_file):
     os.chdir('mols')
-    sp.call("pythonsh ~/Desktop/ChemHopper/docking/prepare_ligand4.py -l "+lig_file+" -v",shell=True)
+    sp.call("python2 C:/Users/nbeck/Desktop/Summer_Research_2022/docking/prepare_ligand4.py -l "+lig_file+" -v",shell=True)
     os.chdir('../')
     return lig_file+'qt'
 
@@ -303,7 +303,7 @@ def dock_it(lig_smile,prot_pdbqt,exhaustiveness=8,iiter='test'):
     # runs vina and logs results
     logfile="logs/log_"+iiter+".txt"
     with open(logfile,'w') as log:
-        run=sp.run("vina_1.2.3_linux_x86_64 --config=configs/"+configuration,shell=True,stdout=log)
+        run=sp.run("vina --config=configs/"+configuration,shell=True,stdout=log)
     # splitting output
     sp.call("vina_split --input "+out_name+'.pdbqt',shell=True)
     # deleting the original out file from vina plus all but the best modes from vina_split
@@ -338,6 +338,7 @@ def dock_it(lig_smile,prot_pdbqt,exhaustiveness=8,iiter='test'):
 ## mols - the list of mol objects to be printed
 ## top - best molecule for the generation (to be highlighted)
 ## affinities - the corresponding affinities of the mols - SAME INDEXING IS ASSUMED
+## gen - the generation number (needed for th e)
 ## row_len - # of mols to be printed per grid row
 ## rows_per_page - # of rows of mols to be printed per page
 def save_grids(mols,top,affinities,gen,row_len=8,col_len=10,highlight=True):
