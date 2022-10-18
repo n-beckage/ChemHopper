@@ -1,5 +1,9 @@
 # ChemHopper Project Shop Log
 
+#### Considerations
+
+It might be a good idea to implement a more formal data structure for the chemical neighborhood graph. That way, a node (molecule) could hold information such as the SMILE string, scoring metrics, graph depth, and its own neighbors. Check out [Tutorial — NetworkX 3.0b2.dev0 documentation](https://networkx.org/documentation/latest/tutorial.html) as a potential option. May be better off creating your own ChemNode class for nodes an other one for the graph overall >> deserves further thought, TBD.
+
 ### 10/14/22
 
 **FIXED:** molecules are not being printed to grids in the same order each run, when ideally they would be.
