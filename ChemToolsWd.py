@@ -104,6 +104,25 @@ def add_double_bond(m,at,ati,newat):
     return new_smi
 # ** Note that when converting from an RWMol to SMILE back to Mol, the atom indexing changes. This is easily visible in the jupyter sandbox **
 
+### adds a triple bond to a new atom and returns a new SMILE string
+## m - the mol object to be changed
+## at - 
+## ati - the index of the atom on the old mol to which the new atom will be attached
+## newat - type of new atom to be added; given as atomic symbol (i.e. 'C', 'N', etc.)
+def add_triple_bond(m,at,ati,newat):
+    # making an editable version of the mol
+    edit_mol=Chem.rdchem.RWMol(m)
+    # creates a new atom based on the corresponding atomic number of the the atomic symbol
+    new_atom=Chem.rdchem.Atom(allowed_atomic[atomic_names.index(newat)])
+    # adds the new atom to edit_mol and returns the new index of the atom (at_ind)
+    at_ind=edit_mol.AddAtom(new_atom)
+    # adds the new bond, returns the new number of bonds
+    edit_mol.AddBond(ati,at_ind,Chem.BondType.TRIPLE)
+    # the new smile string generated is sometimes weird, but still encodes the molecule so I guess it's alright
+    new_smi=Chem.MolToSmiles(edit_mol)
+    #currently deliminates sterochemistry uhg..
+    return new_smi
+
 ### removes an atom from the mol
 ## m - the mol object to be changed
 ## ati - the index of the atom to be removed

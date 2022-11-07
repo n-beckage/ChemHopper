@@ -1,5 +1,14 @@
 # ChemHopper Project Shop Log
 
+### 10/24/22 - Fixing Chemical Transformations
+
+**Done** (for now?) - decided it didn't make sense to mutate bonds AND atoms simultaneously; after all that seems like two chemical transformations, so not valid for a single iteration. Here are the edits I did make:
+
+- Mutations: mutate double to triple bond. Double bonded atoms with degree=3 were not being converted to triple, even they they should have
+- Additions: Add triple bond to N, C. These additions weren't taking place before for some reason.
+
+
+
 #### Considerations
 
 It might be a good idea to implement a more formal data structure for the chemical neighborhood graph. That way, a node (molecule) could hold information such as the SMILE string, scoring metrics, graph depth, and its own neighbors. Check out [Tutorial — NetworkX 3.0b2.dev0 documentation](https://networkx.org/documentation/latest/tutorial.html) as a potential option. May be better off creating your own ChemNode class for nodes an other one for the graph overall >> deserves further thought, TBD.

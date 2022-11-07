@@ -51,7 +51,6 @@ prot_pdbqt=prot_pdb+'qt'
 # using acetone as an example
 parent_name='Ethane'
 parent_0='CC'
-
 #propofol=Chem.MolFromSmiles(propofol)
 #Draw.MolToFile(propofol,"propofol.png")
 
@@ -64,14 +63,11 @@ depth=int(str_depth)
 
 print("\nHow exhaustive will your search be?")
 
-
-
 # taking in exhaustiveness hyperparameter
 str_exhaust=input("exhaustiveness = ")
 exhaust=int(str_exhaust)
 
 print("\n\nGreat! Let's begin")
-
 
 print('\n\n############\n DEPTH = '+str(depth)+' \n############\n')
 
@@ -134,12 +130,10 @@ for gen in range(depth):
                 all_desc.append(mutate(parent_mol,atom,i,"C",0))
                 all_desc.append(mutate(parent_mol,atom,i,"N",0))
                 all_desc.append(mutate(parent_mol,atom,i,"O",0))
-        if at_deg == 1:
+        if at_deg <= 1:
             all_desc.append(mutate(parent_mol,atom,i,"F",0))
             all_desc.append(mutate(parent_mol,atom,i,"Cl",0))
-        
 
-        
         #### Try to add a single atom w/ new atom bonded to the existing atom on molecule
         if at_deg == 3:# could be a C or N, could add a single bond C,N,or O
             #assume not an "O"
@@ -166,7 +160,7 @@ for gen in range(depth):
             elif atom_n=="N":
                 all_desc.append(add_single_bond(parent_mol,atom,i,"N"))
                 all_desc.append(add_single_bond(parent_mol,atom,i,"C"))
-        if at_deg ==1:# could be a C or N or O, but dont add double bond to O
+        if at_deg <=1:# could be a C or N or O, but dont add double bond to O
             if atom_n == "C" :
                 #add single bonded atom
                 all_desc.append(add_single_bond(parent_mol,atom,i,"N"))
@@ -178,6 +172,9 @@ for gen in range(depth):
                 all_desc.append(add_double_bond(parent_mol,atom,i,"N"))
                 all_desc.append(add_double_bond(parent_mol,atom,i,"C"))
                 all_desc.append(add_double_bond(parent_mol,atom,i,"O"))
+                #add triple bonded atom
+                all_desc.append(add_triple_bond(parent_mol,atom,i,"N"))
+                all_desc.append(add_triple_bond(parent_mol,atom,i,"C"))
             elif atom_n =="N":
                 all_desc.append(add_single_bond(parent_mol,atom,i,"N"))
                 all_desc.append(add_single_bond(parent_mol,atom,i,"C"))
@@ -197,16 +194,21 @@ for gen in range(depth):
                 all_desc.append(tmp_mols)
         
     ### Begin iteration through BONDS
-    idone=0
+    check=0
     for i,bond in enumerate(parent_mol.GetBonds()):
+        # get the indices of the beginning and end atoms within the bond
+        aidx1 = bond.GetBeginAtomIdx()
+        aidx2 = bond.GetEndAtomIdx()
         #ignore bonds to halogens
-        if parent_mol.GetAtoms()[bond.GetBeginAtomIdx()].GetAtomicNum() not in halogens and parent_mol.GetAtoms()[bond.GetEndAtomIdx()].GetAtomicNum() not in halogens:
-            #determine elements in bond
-            atom1=atomic_names[allowed_atomic.index(parent_mol.GetAtoms()[bond.GetBeginAtomIdx()].GetAtomicNum())]
-            atom2=atomic_names[allowed_atomic.index(parent_mol.GetAtoms()[bond.GetEndAtomIdx()].GetAtomicNum())]
+        if parent_mol.GetAtoms()[aidx1].GetAtomicNum() not in halogens and parent_mol.GetAtoms()[aidx2].GetAtomicNum() not in halogens:
+            #determine the names of elements in bond
+            atom1=parent_mol.GetAtoms()[aidx1]
+            atom2=parent_mol.GetAtoms()[aidx2]
+            aname1=atomic_names[allowed_atomic.index(atom1.GetAtomicNum())]
+            aname2=atomic_names[allowed_atomic.index(atom2.GetAtomicNum())]
             #determine degree of atoms in bond
-            degree1=degree(parent_mol.GetAtoms()[bond.GetBeginAtomIdx()])
-            degree2=degree(parent_mol.GetAtoms()[bond.GetEndAtomIdx()])
+            degree1=degree(parent_mol.GetAtoms()[aidx1])
+            degree2=degree(parent_mol.GetAtoms()[aidx2])
             #check bond type and apply chemical rules
             if btype(bond) =="SINGLE":
                 #check if not (between two double bonds and in ring)
@@ -214,34 +216,33 @@ for gen in range(depth):
                     #print(idone,bond)
                     #try making it a double bond
                     #print(i+1,is_aromatic(parent_mol,bond))
-                    if (atom1 == "C") and (atom2 == "C"):#(atom1 == "C" or atom1 == "N") and (atom2 == "C" or atom2 == "N"):
-                        if degree1<=3 and degree2<=3:#only two <terterary carbons can form a double bond (ignoring N+ )
+                    if (aname1 == "C") and (aname2 == "C"):#(aname1 == "C" or aname1 == "N") and (aname2 == "C" or aname2 == "N"):
+                        if degree1<=3 and degree2<=3:#only two tertiary carbons can form a double bond (ignoring N+ )
                             all_desc.append(make_double(parent_mol,bond,i))
-                            idone+=1
-                    elif (atom1 == "O") and (atom2 == "C"):# a single bond with O-C
+                    elif (aname1 == "O") and (aname2 == "C"):# a single bond with O-C
                         if degree1==1 and degree2<=3:#check if O is single degree and C is <terterary
                             all_desc.append(make_double(parent_mol,bond,i))# hydroxyl -> carbonyl
-                    elif (atom1 == "C") and (atom2 == "O"):# a single bond with C-O
+                    elif (aname1 == "C") and (aname2 == "O"):# a single bond with C-O
                         if degree1<=3 and degree2==1:#check if O is single degree and C is <terterary
                             all_desc.append(make_double(parent_mol,bond,i))# hydroxyl -> carbonyl      
-                    elif atom1 == "C" and atom2 == "N":# a single bond with C-N
+                    elif aname1 == "C" and aname2 == "N":# a single bond with C-N
                         if degree1<=3 and degree2<=2:#check if N is 2 degree and C is <terterary
                             all_desc.append(make_double(parent_mol,bond,i))# 
-                    elif atom1 == "N" and atom2 == "C":# a single bond with N-C
+                    elif aname1 == "N" and aname2 == "C":# a single bond with N-C
                         if degree1<=2 and degree2<=3:#check if N is 2 degree and C is <terterary
                             all_desc.append(make_double(parent_mol,bond,i))# 
                     #try making it a triple bond
                     #-C#N or -C#C or -C#C-
-                    if (atom1 =="N" and degree1==1 and atom2=="C" and degree2<=2) or (atom1 =="C" and degree1<=2 and atom2=="N" and degree2==1) :# -C-N -> -C#N
+                    if (aname1 =="N" and degree1==1 and aname2=="C" and degree2<=2) or (aname1 =="C" and degree1<=2 and aname2=="N" and degree2==1) :# -C-N -> -C#N
                         all_desc.append(make_triple(parent_mol,bond,i))
-                    elif atom1 =="C" and atom2=="C" and degree1<=2 and degree2<=2:
+                    elif aname1 =="C" and aname2=="C" and degree1<=2 and degree2<=2:
                         all_desc.append(make_triple(parent_mol,bond,i))
             elif btype(bond) =="DOUBLE":
                 #try making a single bond, should be fine. but maybe diols are unlikely?
                 all_desc.append(make_single(parent_mol,bond,i))
                 #try making it a triple bond if not in ring
-                if (atom1 == "C" or atom1 == "N") and (atom2 == "C" or atom2 == "N") and not (atom1 =="N" and atom2 == "N") and not bond.IsInRing():
-                    if degree1<=2 and degree2<=2:
+                if (aname1 == "C" or aname1 == "N") and (aname2 == "C" or aname2 == "N") and not (aname1 =="N" and aname2 == "N") and not bond.IsInRing():
+                    if degree1<=3 and degree2<=3:
                         all_desc.append(make_triple(parent_mol,bond,i))
             elif btype(bond) =="TRIPLE":
                 #try making a single bond
@@ -249,7 +250,7 @@ for gen in range(depth):
                 #try making a double bond, it already was a triple, so should be fine
                 all_desc.append(make_double(parent_mol,bond,i))
                 #try removing the bond
-            tmp_mols=remove_bond(parent_mol,bond.GetBeginAtomIdx(),bond.GetEndAtomIdx())
+            tmp_mols=remove_bond(parent_mol,aidx1,aidx2)
             tmp_mol=Chem.MolFromSmiles(tmp_mols)
             if check_connected(tmp_mol)==1:
                 all_desc.append(tmp_mols)
