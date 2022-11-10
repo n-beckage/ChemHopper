@@ -25,8 +25,6 @@ atomic_names=["C","N","O","F","Cl"]
 halogens=[9,17]
 type_i=[0,1,2,1.5]
 types=["SINGLE","DOUBLE","TRIPLE","AROMATIC"]
-n_save=5 #save top n_save for next round
-
 ######################################################### BEGIN SCRIPT ########################################################################################
 
 # making directories to organize our output files
@@ -43,7 +41,7 @@ logging.basicConfig(filename='error_log.log', filemode='w',format='%(asctime)s -
 
 # preparing the receptor
 prot_pdb='1e7a_aligned.pdb'
-prot_pdbqt=prepare_receptor(prot_pdb)
+# prot_pdbqt=prepare_receptor(prot_pdb)
 prot_pdbqt=prot_pdb+'qt'
 
 ### Propofol SMILE string - parent molecule, patient 0, generations[0][0], etc
@@ -80,202 +78,25 @@ no_embed=[]
 # for testing purposes (will not call dock_it())
 generations=[[(parent_0,ran.uniform(-6,0))]]
 
-# Keeping a set containing all UNIQUE molecules created and tested
-master_set = list(dict.fromkeys([parent_0]))
+# Keeping a list containing all UNIQUE molecules created and tested
+master_list = [parent_0]
 
 # creates best_path list (top performers from each search), which will be of length depth+1, due to the parent molecule being the first entry
 best_path=[generations[0][0]]
 
 # Begin iterations
+parent = parent_0
 for gen in range(depth):
-    # this is the temporarry array that will hold the molecules created throughout the editing process
-    all_desc=[]
-    # this defines the current parent as the best molecule from the previous iteration
-    parent_smi=best_path[-1][0]
-    parent_mol=Chem.MolFromSmiles(parent_smi)
-    # Not sure what this line does specifically, but it is necessary so that the function degree() returns the proper bond counts.
-    Chem.rdmolops.Kekulize(parent_mol,clearAromaticFlags=True)
-
-    # Begin working through the molecular editing process - iterating through ATOMS
-    for i,atom in enumerate(parent_mol.GetAtoms()):
-        at_deg=degree(atom)
-        atom_n=aname(atom)
-        # checkpt
-        #### Try to Mutate Atoms
-        if at_deg == 4:#could be C or N
-            if atom_n=="C":
-                all_desc.append(mutate(parent_mol,atom,i,"N",1))#mutates atom in molecule to "N"
-            if atom_n=="N":
-                all_desc.append(mutate(parent_mol,atom,i,"C",0))   
-        if at_deg == 3:#could be a C or N
-            if atom_n=="C":
-                all_desc.append(mutate(parent_mol,atom,i,"N",0))
-                #all_desc.append(mutate(parent_mol,atom,i,"N",1))#could be protonated?
-            if atom_n=="N":
-                all_desc.append(mutate(parent_mol,atom,i,"C",0))
-        if at_deg <=2: #could be a C or N or O
-            if atom_n=="C":
-                all_desc.append(mutate(parent_mol,atom,i,"N",0))
-                #all_desc.append(mutate(parent_mol,atom,i,"N",1))#could be protonated?
-                all_desc.append(mutate(parent_mol,atom,i,"O",0))
-            if atom_n=="N":
-                all_desc.append(mutate(parent_mol,atom,i,"C",0))
-                all_desc.append(mutate(parent_mol,atom,i,"O",0))
-            if atom_n=="O":
-                all_desc.append(mutate(parent_mol,atom,i,"C",0))
-                all_desc.append(mutate(parent_mol,atom,i,"N",0))
-                #all_desc.append(mutate(parent_mol,atom,i,"N",1))#could be protonated?
-                # if the atom is a halogen, it has degree of 1
-            if atom_n in ["F","Cl"]:
-                all_desc.append(mutate(parent_mol,atom,i,"C",0))
-                all_desc.append(mutate(parent_mol,atom,i,"N",0))
-                all_desc.append(mutate(parent_mol,atom,i,"O",0))
-        if at_deg <= 1:
-            all_desc.append(mutate(parent_mol,atom,i,"F",0))
-            all_desc.append(mutate(parent_mol,atom,i,"Cl",0))
-
-        #### Try to add a single atom w/ new atom bonded to the existing atom on molecule
-        if at_deg == 3:# could be a C or N, could add a single bond C,N,or O
-            #assume not an "O"
-            if atom_n =="C":
-                #FIX TO ALLOW N(-C)4, non-heteroatom quaternary nitrogen
-                all_desc.append(add_single_bond(parent_mol,atom,i,"N"))#adds single bonded "N" to atom in molecule
-                all_desc.append(add_single_bond(parent_mol,atom,i,"C"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"O"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"F"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"Cl"))
-        if at_deg ==2:# could be a C or N or O, but dont add to O
-            if atom_n == "C":
-                #add single bonded atom
-                all_desc.append(add_single_bond(parent_mol,atom,i,"N"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"C"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"O"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"F"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"Cl"))
-                #add double bonded atom but only if no double bond on c already
-                if all([btype(bond)!="DOUBLE" for bond in atom.GetBonds()]):
-                    all_desc.append(add_double_bond(parent_mol,atom,i,"N"))
-                    all_desc.append(add_double_bond(parent_mol,atom,i,"C"))
-                    all_desc.append(add_double_bond(parent_mol,atom,i,"O"))
-            elif atom_n=="N":
-                all_desc.append(add_single_bond(parent_mol,atom,i,"N"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"C"))
-        if at_deg <=1:# could be a C or N or O, but dont add double bond to O
-            if atom_n == "C" :
-                #add single bonded atom
-                all_desc.append(add_single_bond(parent_mol,atom,i,"N"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"C"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"O"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"F"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"Cl"))
-                #add double bonded atom
-                all_desc.append(add_double_bond(parent_mol,atom,i,"N"))
-                all_desc.append(add_double_bond(parent_mol,atom,i,"C"))
-                all_desc.append(add_double_bond(parent_mol,atom,i,"O"))
-                #add triple bonded atom
-                all_desc.append(add_triple_bond(parent_mol,atom,i,"N"))
-                all_desc.append(add_triple_bond(parent_mol,atom,i,"C"))
-            elif atom_n =="N":
-                all_desc.append(add_single_bond(parent_mol,atom,i,"N"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"C"))
-                all_desc.append(add_double_bond(parent_mol,atom,i,"C"))
-            elif atom_n=="O":
-                #add single bonded atom
-                all_desc.append(add_single_bond(parent_mol,atom,i,"C"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"O"))
-        
-        #### Try removing atom
-        if at_deg==1:#no worries
-            all_desc.append(remove_atom(parent_mol,atom,i))
-        elif at_deg>=2:#only can remove if the resulting molecule is connected (doesn't have floating framents)
-            tmp_mols=remove_atom(parent_mol,atom,i)
-            tmp_mol=Chem.MolFromSmiles(tmp_mols)
-            if check_connected(tmp_mol)==1:
-                all_desc.append(tmp_mols)
-        
-    ### Begin iteration through BONDS
-    check=0
-    for i,bond in enumerate(parent_mol.GetBonds()):
-        # get the indices of the beginning and end atoms within the bond
-        aidx1 = bond.GetBeginAtomIdx()
-        aidx2 = bond.GetEndAtomIdx()
-        #ignore bonds to halogens
-        if parent_mol.GetAtoms()[aidx1].GetAtomicNum() not in halogens and parent_mol.GetAtoms()[aidx2].GetAtomicNum() not in halogens:
-            #determine the names of elements in bond
-            atom1=parent_mol.GetAtoms()[aidx1]
-            atom2=parent_mol.GetAtoms()[aidx2]
-            aname1=atomic_names[allowed_atomic.index(atom1.GetAtomicNum())]
-            aname2=atomic_names[allowed_atomic.index(atom2.GetAtomicNum())]
-            #determine degree of atoms in bond
-            degree1=degree(parent_mol.GetAtoms()[aidx1])
-            degree2=degree(parent_mol.GetAtoms()[aidx2])
-            #check bond type and apply chemical rules
-            if btype(bond) =="SINGLE":
-                #check if not (between two double bonds and in ring)
-                if not is_bet_dub_and_ring(parent_mol,bond):
-                    #print(idone,bond)
-                    #try making it a double bond
-                    #print(i+1,is_aromatic(parent_mol,bond))
-                    if (aname1 == "C") and (aname2 == "C"):#(aname1 == "C" or aname1 == "N") and (aname2 == "C" or aname2 == "N"):
-                        if degree1<=3 and degree2<=3:#only two tertiary carbons can form a double bond (ignoring N+ )
-                            all_desc.append(make_double(parent_mol,bond,i))
-                    elif (aname1 == "O") and (aname2 == "C"):# a single bond with O-C
-                        if degree1==1 and degree2<=3:#check if O is single degree and C is <terterary
-                            all_desc.append(make_double(parent_mol,bond,i))# hydroxyl -> carbonyl
-                    elif (aname1 == "C") and (aname2 == "O"):# a single bond with C-O
-                        if degree1<=3 and degree2==1:#check if O is single degree and C is <terterary
-                            all_desc.append(make_double(parent_mol,bond,i))# hydroxyl -> carbonyl      
-                    elif aname1 == "C" and aname2 == "N":# a single bond with C-N
-                        if degree1<=3 and degree2<=2:#check if N is 2 degree and C is <terterary
-                            all_desc.append(make_double(parent_mol,bond,i))# 
-                    elif aname1 == "N" and aname2 == "C":# a single bond with N-C
-                        if degree1<=2 and degree2<=3:#check if N is 2 degree and C is <terterary
-                            all_desc.append(make_double(parent_mol,bond,i))# 
-                    #try making it a triple bond
-                    #-C#N or -C#C or -C#C-
-                    if (aname1 =="N" and degree1==1 and aname2=="C" and degree2<=2) or (aname1 =="C" and degree1<=2 and aname2=="N" and degree2==1) :# -C-N -> -C#N
-                        all_desc.append(make_triple(parent_mol,bond,i))
-                    elif aname1 =="C" and aname2=="C" and degree1<=2 and degree2<=2:
-                        all_desc.append(make_triple(parent_mol,bond,i))
-            elif btype(bond) =="DOUBLE":
-                #try making a single bond, should be fine. but maybe diols are unlikely?
-                all_desc.append(make_single(parent_mol,bond,i))
-                #try making it a triple bond if not in ring
-                if (aname1 == "C" or aname1 == "N") and (aname2 == "C" or aname2 == "N") and not (aname1 =="N" and aname2 == "N") and not bond.IsInRing():
-                    if degree1<=3 and degree2<=3:
-                        all_desc.append(make_triple(parent_mol,bond,i))
-            elif btype(bond) =="TRIPLE":
-                #try making a single bond
-                all_desc.append(make_single(parent_mol,bond,i))
-                #try making a double bond, it already was a triple, so should be fine
-                all_desc.append(make_double(parent_mol,bond,i))
-                #try removing the bond
-            tmp_mols=remove_bond(parent_mol,aidx1,aidx2)
-            tmp_mol=Chem.MolFromSmiles(tmp_mols)
-            if check_connected(tmp_mol)==1:
-                all_desc.append(tmp_mols)
-
-    ### Have yet to work on rules for intramolecular bonds - i.e. making rings
-    
-    # code to remove duplicate smile strings for current generation and prvious generation. Since each generation will be unique, there is no need to continuous check ALL previous generations each
-    # time we go through the loop; this line of code has a recursive structure
-    # uniq_desc - list on unique descendants for current generation
-    # master_set - set of ALL descendants (no duplicates)
-    all_set = list(dict.fromkeys(all_desc))
-    print(all_set)
-    mset = set(master_set)
-    uniq_desc = [i for i in all_set if i not in mset]
-    print(uniq_desc)
-    master_set=master_set+uniq_desc
-    print(master_set)
+    # call the chemical exploration function
+    uniq_desc, master_list = nextGen(parent, master_list) 
 
     # time to dock each descendant in uniq_desc and record results
     results=[] # the results for current GEN ONLY
-    
+
     ### CHECKPOINT
 
     print('\n################\n DEPTH = '+str(gen+1)+'/'+str(depth)+' \n################')
-    
+
     print("# OF UNIQUE DESC:",str(len(uniq_desc)), "\n")
     for i,smi in enumerate(uniq_desc):
         iiter=str(gen+1)+"."+str(i)
@@ -303,6 +124,8 @@ for gen in range(depth):
     best_index=affinities.index(min(affinities))
     # adding the best perfomer to the best_path list
     best_path.append(results[best_index])
+    # Assigning the top molecule to be the next generation's parent
+    parent = results[best_index][0]
 
     ### produce an image of the molecules
     # first create a mol list
@@ -311,18 +134,19 @@ for gen in range(depth):
         mol=Chem.MolFromSmiles(smi)
         Chem.rdmolops.Kekulize(mol,clearAromaticFlags=True)
         uniq_mols.append(mol)
-    # img=Draw.MolsToGridImage(uniq_mols,molsPerRow=int(len(uniq_mols)/10),subImgSize=(350,350),legends=[str(a) for a in affinities],maxMols=len(uniq_mols))
-
     # returns index of the top molecule in uniq_desc
     best_index=uniq_desc.index(best_path[-1][0])
     top=uniq_mols[best_index]
     save_grids(uniq_mols,top,affinities,gen,8,10)
 
+    # print("Generations list is:")
+    # print(generations)
+
     print("BEST PATH:\n",best_path)
 
-    np.save("np_objs/generations.npy",np.array(generations,dtype=object))
-    np.save("np_objs/best_path.npy",np.array(best_path))
-    np.save("np_objs/no_embed.npy",np.array(no_embed))
+np.save("np_objs/generations.npy",np.array(generations,dtype=object))
+np.save("np_objs/best_path.npy",np.array(best_path))
+np.save("np_objs/no_embed.npy",np.array(no_embed))
 
 # tabulating the best path
 df=pd.DataFrame(best_path)
