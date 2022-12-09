@@ -274,7 +274,7 @@ def make_dirs(dirs):
 ## cpu - number of CPUs to use; deafult is to detect the number available and use those
 ## num_modes  max number of binding modes to generate
 ## score_only - can the search space be omitted? true/false
-def configure(receptor,ligand,iteration='test',fname="config",size=20,exhaustiveness=8,center_x=12.95,center_y=15.76,center_z=2.28,out='vina_outs/out',cpu=16,num_modes=9,score_only=False):
+def configure(receptor,ligand,iteration='test',fname="config",size=20,exhaustiveness=8,center_x=12.95,center_y=15.76,center_z=2.28,out='vina_outs/out',cpu=16,num_modes=9,seed=0,verbosity=1,score_only=False):
     config_i=fname+"_"+iteration+'.txt'
     out_name=out+"_"+iteration
     os.chdir('configs')
@@ -290,7 +290,9 @@ def configure(receptor,ligand,iteration='test',fname="config",size=20,exhaustive
         f.write('size_z = '+str(size)+'\n\n')
         f.write('exhaustiveness = '+str(exhaustiveness)+'\n\n')
         f.write('cpu = '+str(cpu)+'\n\n')
-        f.write('num_modes = '+str(num_modes))
+        f.write('num_modes = '+str(num_modes)+'\n\n')
+        f.write('seed = '+str(seed)+'\n\n')
+        f.write('verbosity = '+str(verbosity))
         if score_only:
             f.write('\n\nscore_only = true')
     os.chdir('../')
@@ -343,7 +345,7 @@ def dock_it(lig_smile,prot_pdbqt,exhaustiveness=8,iiter='test'):
     Chem.rdmolfiles.MolToPDBFile(mh,lig_pdb)
     # prepares ligand and returns lig_pdbqt
     lig_pdbqt=prepare_ligand(lig_pdb)
-    configuration,out_name=configure(prot_pdbqt,lig_pdbqt,iiter,exhaustiveness=exhaustiveness)
+    configuration,out_name=configure(prot_pdbqt,lig_pdbqt,iiter,exhaustiveness=exhaustiveness,seed=1,verbosity=2)
     # runs vina and logs results
     logfile="logs/log_"+iiter+".txt"
     with open(logfile,'w') as log:

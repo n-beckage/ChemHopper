@@ -22,19 +22,24 @@ logging.basicConfig(filename='error_log.log', filemode='w',level=logging.INFO,fo
 
 # preparing the receptor
 prot_pdb='1e7a_aligned.pdb'
-prot_pdbqt=prepare_receptor(prot_pdb)
+# prot_pdbqt=prepare_receptor(prot_pdb)
 prot_pdbqt=prot_pdb+'qt'
 
 ### Propofol SMILE string - parent molecule, patient 0, generations[0][0], etc
 # parent_0='CC(C)C1=C(C(=CC=C1)C(C)C)O'
-# using acetone as an example
 parent_name='Ethane'
 parent_0='CC'
 #propofol=Chem.MolFromSmiles(propofol)
 #Draw.MolToFile(propofol,"propofol.png")
 
 # defining the exhaustiveness for Autodock Vina, now using keyboard input:
-print("\n\n\nWelcome to Chemical Space!\nHow deep will you go?")
+print("\n\n\nWelcome to Chemical Space!")
+
+print("\n Please enter the name and SMILE string of your starting ligand:")
+parent_name=input("\nName = ")
+parent_0=input("\nSMILE = ")
+
+print("\nHow deep will you go?")
 
 # defining the depth of our search
 str_depth=input("depth = ")
