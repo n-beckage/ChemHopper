@@ -1,4 +1,4 @@
-from rdkit import Chem
+from ChemToolsWd import *
 
 ### define some chemical data
 

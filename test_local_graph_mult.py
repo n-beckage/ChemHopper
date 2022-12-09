@@ -3,40 +3,21 @@ import time
 t0=time.time()
 from ChemToolsWd import *
 
-from rdkit import Chem
-from rdkit.Chem import AllChem
-import numpy as np
-from rdkit.Chem import Draw
-import subprocess as sp
-import pandas as pd
-from tabulate import tabulate as tab
-import os
-import matplotlib.pyplot as plt
-import sys
-import random as ran
-import re
-import logging
-
 ### define some chemical data
 
 # Corresponding atomic numbers of atomic_names
-allowed_atomic=[6,7,8,9,17]#,9,15,16,17,35]#implicit hydrogen
-atomic_names=["C","N","O","F","Cl"]
-halogens=[9,17]
-type_i=[0,1,2,1.5]
-types=["SINGLE","DOUBLE","TRIPLE","AROMATIC"]
+# allowed_atomic=[6,7,8,9,15,16,17,35]
+# atomic_names=["C","N","O","F","P","S","Cl","Br"]
+# halogens=[9,17,35]
+# type_i=[0,1,2,1.5]
+# types=["SINGLE","DOUBLE","TRIPLE","AROMATIC"]
 ######################################################### BEGIN SCRIPT ########################################################################################
 
 # making directories to organize our output files
-os.mkdir("logs")
-os.mkdir("np_objs")
-os.mkdir("configs")
-os.mkdir("grids")
-os.mkdir("vina_outs")
-os.mkdir("mols")
+make_dirs(["logs","np_objs","configs","grids","vina_outs","mols"])
 
 # setting up log format (only needs to be done once)
-logging.basicConfig(filename='error_log.log', filemode='w',format='%(asctime)s -%(name)s:%(levelname)s- %(message)s')
+logging.basicConfig(filename='error_log.log', filemode='w',level=logging.INFO,format='%(asctime)s -%(name)s:%(levelname)s- %(message)s')
 
 
 # preparing the receptor
@@ -88,7 +69,13 @@ best_path=[generations[0][0]]
 parent = parent_0
 for gen in range(depth):
     # call the chemical exploration function
-    uniq_desc, master_list = nextGen(parent, master_list) 
+    all_desc = nextGen(parent)
+
+    # extract uniq descendants and previously discovered descendants (intersect)
+    uniq_desc, intersect_desc = extract_intersection(all_desc, master_list)
+    
+    # add novel uniq descendants to master list
+    master_list = master_list + uniq_desc
 
     # time to dock each descendant in uniq_desc and record results
     results=[] # the results for current GEN ONLY
@@ -130,10 +117,17 @@ for gen in range(depth):
     ### produce an image of the molecules
     # first create a mol list
     uniq_mols=[]
+    bad_smis=[]
+    uniq_desc.append("CC#C#C")
     for smi in uniq_desc:
         mol=Chem.MolFromSmiles(smi)
-        Chem.rdmolops.Kekulize(mol,clearAromaticFlags=True)
-        uniq_mols.append(mol)
+        if mol is not None:
+            Chem.rdmolops.Kekulize(mol,clearAromaticFlags=True)
+            uniq_mols.append(mol)
+        else:
+            bad_smis.append(smi)
+            logging.info("BAD SMILE: "+smi)
+            print("BAD SMILE: ",smi)
     # returns index of the top molecule in uniq_desc
     best_index=uniq_desc.index(best_path[-1][0])
     top=uniq_mols[best_index]

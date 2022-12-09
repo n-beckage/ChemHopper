@@ -20,12 +20,12 @@ import logging
 ### define some chemical data
 
 # Corresponding atomic numbers of atomic_names
-allowed_atomic=[6,7,8,9,17]#,9,15,16,17,35]#implicit hydrogen
-atomic_names=["C","N","O","F","Cl"]
-halogens=[9,17]
+allowed_atomic=[6,7,8,9,15,16,17,35]
+atomic_names=["C","N","O","F","P","S","Cl","Br"]
+halogens=[9,17,35]
+halo_names=["F","Cl","Br"]
 type_i=[0,1,2,1.5]
 types=["SINGLE","DOUBLE","TRIPLE","AROMATIC"]
-n_save=5 #save top n_save for next round
 
 ### helper functions for molecule editing
 
@@ -237,6 +237,31 @@ def check_cylces(smii):
         return 0
     return 1
 
+### def extract_intersection - gets the extracted elemenets between two lists 
+##### list master - the list to be referred to for intersection function (no duplicates)
+##### list target - the list that will get its intersection removed (no duplicates); should be all molecules generated from nextGen())
+### returns:
+##### list uniq - the list of unique elements in target (elements that are not in master)
+##### list intersect -  the list of elements in target that are also in master (the intersection)
+def extract_intersection(target, master):
+    # this if statement will make sure master_list has no duplicates (it shouldn't at this point - this is a failsafe)
+    if (len(master)!=len(set(master))):
+        print("Duplicates in master_list detected!")
+        master = list(dict.fromkeys(master))
+    uniq = [i for i in target if i not in master]
+    intersect = [i for i in target if i in master]
+    return uniq, intersect
+
+### def make_dirs(dirs)
+# makes the directories needed for the Gradient Descent Program
+### string list dirs - list of directories to make
+def make_dirs(dirs):
+    for d in dirs:
+        if os.path.isdir(d):
+            continue
+        else: os.mkdir(d)
+    return
+
 ### writes the configuration file confi.txt for a vina run
 ## receptor - the name of the receptor file (string, .pdbqt)
 ## ligand - the name of the ligand file (string, .pdbqt)
@@ -386,11 +411,9 @@ def save_grids(mols,top,affinities,gen,row_len=8,col_len=10,highlight=True):
 
 ### def nextGen(parent_smi,master_list)
 ##### string parent_smi - the SMILE string of the parent molecule
-##### string list master_list - list of SMILE strings for all molecules that have been created so far (ordered AND uno duplicates)
-### Returns:
-##### string list uniq_desc - SMILE list of newly created descendants not previously discovered
-##### string list master_list - updated maser_list that contains all the new discoveries (aka uniq_desc)
-def nextGen(parent_smi,master_list):
+### returns:
+##### string list all_desc - SMILE list of all immediate descendants
+def nextGen(parent_smi):
     all_desc = []
     parent_mol=Chem.MolFromSmiles(parent_smi)
     # Not sure what this line does specifically, but it is necessary so that the function degree() returns the proper bond counts.
@@ -400,91 +423,134 @@ def nextGen(parent_smi,master_list):
     for i,atom in enumerate(parent_mol.GetAtoms()):
         at_deg=degree(atom)
         atom_n=aname(atom)
-        # checkpt
+        bond_types = [str(x.GetBondType()) for x in atom.GetBonds()]
         #### Try to Mutate Atoms
-        if at_deg == 4:#could be C or N
+        if at_deg == 4:# could be C, S, or N
             if atom_n=="C":
-                all_desc.append(mutate(parent_mol,atom,i,"N",1))#mutates atom in molecule to "N"
+                all_desc.append(mutate(parent_mol,atom,i,"N",1))# mutates atom in molecule to "N"
             if atom_n=="N":
-                all_desc.append(mutate(parent_mol,atom,i,"C",0))   
-        if at_deg == 3:#could be a C or N
+                all_desc.append(mutate(parent_mol,atom,i,"C",0))
+            if atom_n=="S":
+                all_desc.append(mutate(parent_mol,atom,i,"C",0))
+                all_desc.append(mutate(parent_mol,atom,i,"N",1))
+            if atom_n!="S" and bond_types.count("DOUBLE")>=1: # if there is at least 1 double bond with deg=4, then can be sulfur
+                all_desc.append(mutate(parent_mol,atom,i,"S",0))
+        if at_deg == 3:#could be a C, N, or P
             if atom_n=="C":
                 all_desc.append(mutate(parent_mol,atom,i,"N",0))
                 #all_desc.append(mutate(parent_mol,atom,i,"N",1))#could be protonated?
             if atom_n=="N":
                 all_desc.append(mutate(parent_mol,atom,i,"C",0))
+            if atom_n=="P":
+                all_desc.append(mutate(parent_mol,atom,i,"C",0))
+                all_desc.append(mutate(parent_mol,atom,i,"N",0))
+            if atom_n!="P" and bond_types.count("TRIPLE")==0: # phosphorus doesn't form triple bonds as far as I know
+                all_desc.append(mutate(parent_mol,atom,i,"P",0))
         if at_deg <=2: #could be a C or N or O
             if atom_n=="C":
                 all_desc.append(mutate(parent_mol,atom,i,"N",0))
                 #all_desc.append(mutate(parent_mol,atom,i,"N",1))#could be protonated?
                 all_desc.append(mutate(parent_mol,atom,i,"O",0))
+                all_desc.append(mutate(parent_mol,atom,i,"S",0))
+                all_desc.append(mutate(parent_mol,atom,i,"P",0))
             if atom_n=="N":
                 all_desc.append(mutate(parent_mol,atom,i,"C",0))
                 all_desc.append(mutate(parent_mol,atom,i,"O",0))
+                all_desc.append(mutate(parent_mol,atom,i,"S",0))
+                all_desc.append(mutate(parent_mol,atom,i,"P",0))
             if atom_n=="O":
                 all_desc.append(mutate(parent_mol,atom,i,"C",0))
                 all_desc.append(mutate(parent_mol,atom,i,"N",0))
+                all_desc.append(mutate(parent_mol,atom,i,"S",0))
+                all_desc.append(mutate(parent_mol,atom,i,"P",0))
                 #all_desc.append(mutate(parent_mol,atom,i,"N",1))#could be protonated?
-                # if the atom is a halogen, it has degree of 1
-            if atom_n in ["F","Cl"]:
+            if atom_n=="P":
+                all_desc.append(mutate(parent_mol,atom,i,"C",0))
+                all_desc.append(mutate(parent_mol,atom,i,"N",0))
+                all_desc.append(mutate(parent_mol,atom,i,"S",0))
+                all_desc.append(mutate(parent_mol,atom,i,"O",0))       
+            if atom_n=="S":
                 all_desc.append(mutate(parent_mol,atom,i,"C",0))
                 all_desc.append(mutate(parent_mol,atom,i,"N",0))
                 all_desc.append(mutate(parent_mol,atom,i,"O",0))
+                all_desc.append(mutate(parent_mol,atom,i,"P",0))
+                # if the atom is a halogen, it has degree of 1
+            if atom_n in halo_names:
+                all_desc.append(mutate(parent_mol,atom,i,"C",0))
+                all_desc.append(mutate(parent_mol,atom,i,"N",0))
+                all_desc.append(mutate(parent_mol,atom,i,"O",0))
+                all_desc.append(mutate(parent_mol,atom,i,"P",0))
+                all_desc.append(mutate(parent_mol,atom,i,"S",0))
         if at_deg <= 1:
             all_desc.append(mutate(parent_mol,atom,i,"F",0))
             all_desc.append(mutate(parent_mol,atom,i,"Cl",0))
+            all_desc.append(mutate(parent_mol,atom,i,"Br",0))
         
 
         
         #### Try to add a single atom w/ new atom bonded to the existing atom on molecule
-        if at_deg == 3:# could be a C or N, could add a single bond C,N,or O
-            #assume not an "O"
-            if atom_n =="C":
+        if atom_n=="S" and at_deg==4: # sulfur has deg 4, it can take a final double bond
+            for element in ["C","N","O","S","P"]:
+                all_desc.append(add_double_bond(parent_mol,atom,i,element))
+        if at_deg == 3:# could be a C, N, or P
+            if atom_n=="C": # phosphorus does not form 4 non-H bonds to my knowledge (nor does N)
                 #FIX TO ALLOW N(-C)4, non-heteroatom quaternary nitrogen
-                all_desc.append(add_single_bond(parent_mol,atom,i,"N"))#adds single bonded "N" to atom in molecule
-                all_desc.append(add_single_bond(parent_mol,atom,i,"C"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"O"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"F"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"Cl"))
-        if at_deg ==2:# could be a C or N or O, but dont add to O
+                for element in atomic_names:
+                    all_desc.append(add_single_bond(parent_mol,atom,i,element))
+            if atom_n=="P":
+                for element in ["C","N","O","S","P"]:
+                    all_desc.append(add_double_bond(parent_mol,atom,i,element))
+        if at_deg ==2:# could be a C, N, O, S, or P but dont add to O
             if atom_n == "C":
                 #add single bonded atom
-                all_desc.append(add_single_bond(parent_mol,atom,i,"N"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"C"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"O"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"F"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"Cl"))
-                #add double bonded atom but only if no double bond on c already
-                if all([btype(bond)!="DOUBLE" for bond in atom.GetBonds()]):
-                    all_desc.append(add_double_bond(parent_mol,atom,i,"N"))
-                    all_desc.append(add_double_bond(parent_mol,atom,i,"C"))
-                    all_desc.append(add_double_bond(parent_mol,atom,i,"O"))
+                for element in atomic_names:
+                    all_desc.append(add_single_bond(parent_mol,atom,i,element))
+                #add double bonded atom but only if the bond is not in a ring
+                if all([not bond.IsInRing() for bond in atom.GetBonds()]):
+                    for element in ["C","N","O","S","P"]:
+                        all_desc.append(add_double_bond(parent_mol,atom,i,element))
             elif atom_n=="N":
-                all_desc.append(add_single_bond(parent_mol,atom,i,"N"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"C"))
-        if at_deg <=1:# could be a C or N or O, but dont add double bond to O
+                for element in atomic_names:
+                    all_desc.append(add_single_bond(parent_mol,atom,i,element))
+            elif atom_n=="S":
+                # sulfur can't have 4 single bonds, but can have 2 double or 1 double +2 single
+                for element in ["C","N","O","S","P"]:
+                    all_desc.append(add_double_bond(parent_mol,atom,i,element))
+            elif atom_n=="P":
+                for element in atomic_names:
+                    all_desc.append(add_single_bond(parent_mol,atom,i,element))
+        if at_deg <=1:# could be a C, N, O, P, or S, but dont add double bond to O
             if atom_n == "C" :
                 #add single bonded atom
-                all_desc.append(add_single_bond(parent_mol,atom,i,"N"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"C"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"O"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"F"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"Cl"))
+                for element in atomic_names:
+                    all_desc.append(add_single_bond(parent_mol,atom,i,element))
                 #add double bonded atom
-                all_desc.append(add_double_bond(parent_mol,atom,i,"N"))
-                all_desc.append(add_double_bond(parent_mol,atom,i,"C"))
-                all_desc.append(add_double_bond(parent_mol,atom,i,"O"))
+                for element in ["C","N","O","S","P"]:
+                    all_desc.append(add_double_bond(parent_mol,atom,i,element))
                 #add triple bonded atom
                 all_desc.append(add_triple_bond(parent_mol,atom,i,"N"))
                 all_desc.append(add_triple_bond(parent_mol,atom,i,"C"))
             elif atom_n =="N":
-                all_desc.append(add_single_bond(parent_mol,atom,i,"N"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"C"))
-                all_desc.append(add_double_bond(parent_mol,atom,i,"C"))
+                # add single bond to everything
+                for element in atomic_names:
+                    all_desc.append(add_single_bond(parent_mol,atom,i,element))
+                for element in ["C","N","O","S","P"]:
+                    all_desc.append(add_double_bond(parent_mol,atom,i,element))
             elif atom_n=="O":
                 #add single bonded atom
-                all_desc.append(add_single_bond(parent_mol,atom,i,"C"))
-                all_desc.append(add_single_bond(parent_mol,atom,i,"O"))
+                for element in atomic_names:
+                    all_desc.append(add_single_bond(parent_mol,atom,i,element))
+            elif atom_n=="P":
+                for element in atomic_names:
+                    all_desc.append(add_single_bond(parent_mol,atom,i,element))
+                for element in ["C","N","O","S","P"]:
+                    all_desc.append(add_double_bond(parent_mol,atom,i,element))
+            elif atom_n=="S":
+                for element in atomic_names:
+                    all_desc.append(add_single_bond(parent_mol,atom,i,element))
+                for element in ["C","N","O","S","P"]:
+                    all_desc.append(add_double_bond(parent_mol,atom,i,element))
+                
         
         #### Try removing atom
         if at_deg==1:#no worries
@@ -514,37 +580,38 @@ def nextGen(parent_smi,master_list):
             if btype(bond) =="SINGLE":
                 #check if not (between two double bonds and in ring)
                 if not is_bet_dub_and_ring(parent_mol,bond):
-                    #print(idone,bond)
-                    #try making it a double bond
-                    #print(i+1,is_aromatic(parent_mol,bond))
-                    if (aname1 == "C") and (aname2 == "C"):#(aname1 == "C" or aname1 == "N") and (aname2 == "C" or aname2 == "N"):
-                        if degree1<=3 and degree2<=3:#only two tertiary carbons can form a double bond (ignoring N+ )
+                    if(aname1=="C" and aname2=="C" and degree1<=3 and degree2<=3):
+                        all_desc.append(make_double(parent_mol,bond,i))
+                    elif(aname1=="C" and degree1<=3) or (aname2=="C" and degree2<=3):
+                        if(aname2 in ["N","P"] and degree2<=2) or (aname1 in ["N","P"] and degree1<=2):
                             all_desc.append(make_double(parent_mol,bond,i))
-# On second though I don't think it is necessay to mutate atoms AND bonds... that's technically two chemical transformations
-#                             # if one atom has degree of 2 or less, then bond mutations with N are possible
-#                             if degree1<=2:
-#                                 mutantN1 = Chem.MolFromSmiles(mutate(parent_mol,atom1,aidx1,"N",0))
-#                                 all_desc.append(make_double(mutantN1,bond,i))
-#                                 if degree1==1:
-#                                     all_desc.append(make_triple(mutantN1,bond,i))
-#                             elif degree2<=2:
-#                                 mutantN2 = Chem.MolFromSmiles(mutate(parent_mol,atom2,aidx2,"N",0))
-#                                 all_desc.append(make_double(mutantN2,bond,i))
-#                                 if degree2==1:
-#                                     all_desc.append(make_triple(mutant2,bond,i))
-                    elif (aname1 == "O") and (aname2 == "C"):# a single bond with O-C
-                        if degree1==1 and degree2<=3:#check if O is single degree and C is <terterary
-                            all_desc.append(make_double(parent_mol,bond,i))# hydroxyl -> carbonyl
-                    elif (aname1 == "C") and (aname2 == "O"):# a single bond with C-O
-                        if degree1<=3 and degree2==1:#check if O is single degree and C is <terterary
-                            all_desc.append(make_double(parent_mol,bond,i))# hydroxyl -> carbonyl      
-                    elif aname1 == "C" and aname2 == "N":# a single bond with C-N
-                        if degree1<=3 and degree2<=2:#check if N is 2 degree and C is <terterary
-                            all_desc.append(make_double(parent_mol,bond,i))# 
-                    elif aname1 == "N" and aname2 == "C":# a single bond with N-C
-                        if degree1<=2 and degree2<=3:#check if N is 2 degree and C is <terterary
-                            all_desc.append(make_double(parent_mol,bond,i))# 
-                    #try making it a triple bond
+                        elif(aname2 in ["O","S"] and degree2==1) or (aname1 in ["O","S"] and degree1==1):
+                            all_desc.append(make_double(parent_mol,bond,i))
+                    elif(aname1 in ["N","P"] and degree1<=2) or (aname2 in ["N","P"] and degree2<=2):
+                        if(aname1 in ["N","P"] and degree1<=2) and (aname2 in ["N","P"] and degree2<=2):
+                            all_desc.append(make_double(parent_mol,bond,i))
+                        elif(aname1 in ["O","S"] and degree1==1) or (aname2 in ["O","S"] and degree2==1):
+                            all_desc.append(make_double(parent_mol,bond,i))
+                    elif(degree1==1 and degree2==1):
+                        all_desc.append(make_double(parent_mol,bond,i))
+#                     #try making it a double bond
+#                     #print(i+1,is_aromatic(parent_mol,bond))
+#                     if (aname1 == "C") and (aname2 == "C"):#(aname1 == "C" or aname1 == "N") and (aname2 == "C" or aname2 == "N"):
+#                         if degree1<=3 and degree2<=3:#only two tertiary carbons can form a double bond (ignoring N+ )
+#                             all_desc.append(make_double(parent_mol,bond,i))
+#                     elif (aname1 == "O") and (aname2 == "C"):# a single bond with O-C
+#                         if degree1==1 and degree2<=3:#check if O is single degree and C is <terterary
+#                             all_desc.append(make_double(parent_mol,bond,i))# hydroxyl -> carbonyl
+#                     elif (aname1 == "C") and (aname2 == "O"):# a single bond with C-O
+#                         if degree1<=3 and degree2==1:#check if O is single degree and C is <terterary
+#                             all_desc.append(make_double(parent_mol,bond,i))# hydroxyl -> carbonyl      
+#                     elif aname1 == "C" and aname2 == "N":# a single bond with C-N
+#                         if degree1<=3 and degree2<=2:#check if N is 2 degree and C is <terterary
+#                             all_desc.append(make_double(parent_mol,bond,i))# 
+#                     elif aname1 == "N" and aname2 == "C":# a single bond with N-C
+#                         if degree1<=2 and degree2<=3:#check if N is 2 degree and C is <terterary
+#                             all_desc.append(make_double(parent_mol,bond,i))# 
+                    #try making it a triple bond    
                     #-C#N or -C#C or -C#C-
                     if (aname1 =="N" and degree1==1 and aname2=="C" and degree2<=2) or (aname1 =="C" and degree1<=2 and aname2=="N" and degree2==1) :# -C-N -> -C#N
                         all_desc.append(make_triple(parent_mol,bond,i))
@@ -553,10 +620,21 @@ def nextGen(parent_smi,master_list):
             elif btype(bond) =="DOUBLE":
                 #try making a single bond, should be fine. but maybe diols are unlikely?
                 all_desc.append(make_single(parent_mol,bond,i))
-                #try making it a triple bond if not in ring
-                if (aname1 == "C" or aname1 == "N") and (aname2 == "C" or aname2 == "N") and not (aname1 =="N" and aname2 == "N") and not bond.IsInRing():
-                    if degree1<=3 and degree2<=3:
+                #try making it a triple bond if bond is not in ring
+                if not bond.IsInRing():
+                    if (aname1=="C" and aname2=="C" and degree1<=3 and degree2<=3):
                         all_desc.append(make_triple(parent_mol,bond,i))
+                    if (aname1=="C" or aname2=="C") and (aname1=="N" or aname2=="N"): #if we have a C=N or N=C
+                        if (aname1=="C"):
+                            if(degree1<=3 and degree2<3):
+                                all_desc.append(make_triple(parent_mol,bond,i))
+                        elif (degree2<=3 and degree1<3):
+                            all_desc.append(make_triple(parent_mol,bond,i))
+                    if (aname1=="N" and aname2=="N" and degree1<3 and degree2<3):
+                        all_desc.append(make_triple(parent_mol,bond,i))
+                    if (aname1=="P" and aname2=="P" and degree1<3 and degree2<3):
+                        all_desc.append(make_triple(parent_mol,bond,i))
+                        
             elif btype(bond) =="TRIPLE":
                 #try making a single bond
                 all_desc.append(make_single(parent_mol,bond,i))
@@ -571,13 +649,4 @@ def nextGen(parent_smi,master_list):
     # code to remove duplicate smile strings while maintaining relative order
     # all_set may still contain molecules already in the master_list
     all_set = list(dict.fromkeys(all_desc))
-    # this if statement will make sure tmaster_list has no duplicates
-    if (len(master_list)!=len(set(master_list))):
-        print("Duplicates in master_list detected!")
-        mset = set(master_list)
-    else:
-        mset = master_list
-    # if a newly generated mol is not in the master list, then it is novel and can be added to the master list!
-    uniq_desc = [i for i in all_set if i not in mset]
-    master_list=master_list+uniq_desc
-    return uniq_desc, master_list
+    return all_set

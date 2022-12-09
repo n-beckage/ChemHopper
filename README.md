@@ -1,5 +1,37 @@
 # ChemHopper Project Shop Log
 
+### 11/20/22
+
+Things to do
+
+- implement chemical graph-building algorithm
+  - add smile strings, DL metrics to nodes, edges are transformations
+- make visualizations with tmap
+- add ring building to chemical transformations
+
+#### Group Feedback
+
+- **Gradient Descent**
+  - run with random seed for vina
+  - try using autodock vina GPU version on Linux - may be faster
+  - try to see if you can set the initial docking conformation for vina
+  - Look at pyMol files and make a movie
+- **Chemical Transformations**
+  - add sulfur, phosphorus
+    - **DONE** - need to transfer new function to scripts; also probably are some bugs
+  - add ring rules - include rings as their own moiety if necessary
+- **Neighborhood Network**
+  - use reaction strings to keep track of changes
+    - We are using **Reaction SMARTS strings from the rdChemReactions** module of rdkit for this purpose
+  - keep as many edges as possible to show all relationships between generated molecules - How?
+    - For every molecule generated, keep track of all children, even if there are duplicates
+      - the function **`extract_intersect()`** gets the unique elements from the descendant list **`all_desc`** created by **`nextGen()`** as well as the elements already generated (aka elements already in **`master_list`**)
+    - After, each parent should have edges connecting to all of their children, even if those children have been created before (IOW even if they're duplicates)
+      - Edges should be made from parent to nodes that match the molecules in **`intersect`** ; new nodes should be made for **`uniq_desc`**
+    - Thus, for each new generation created:
+      - keep a separate list of what children are duplicates; by definition they should be nodes that already exist -> **`intersect`**
+      - So add edges from the parent to these already existing nodes
+
 ### 10/24/22 - Fixing Chemical Transformations
 
 **Done** (for now?) - decided it didn't make sense to mutate bonds AND atoms simultaneously; after all that seems like two chemical transformations, so not valid for a single iteration. Here are the edits I did make:
