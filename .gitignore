@@ -1,8 +1,12 @@
+
+# No data needs to be pushed
+/data*/
+
 # No runs need be pushed
 /run*/
 
 # No need for test_runs
-/test_runs/
+/test_run*/
 
 # No need for PDBs or PDBQTs
 *.pdb

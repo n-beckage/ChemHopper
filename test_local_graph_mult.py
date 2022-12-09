@@ -54,9 +54,11 @@ print('\n\n############\n DEPTH = '+str(depth)+' \n############\n')
 no_embed=[]
 
 # create generations (master) list, add the original parent results as the frist entry
+
+# DOCKING - FOR REAL RUNS
 # generations=[[(parent_0,dock_it(lig_smile=parent_0,prot_pdbqt=prot_pdbqt,exhaustiveness=exhaust,iiter='0.0'))]]
 
-# for testing purposes (will not call dock_it())
+# NO DOCKING - USE FOR TESTING
 generations=[[(parent_0,ran.uniform(-6,0))]]
 
 # Keeping a list containing all UNIQUE molecules created and tested
@@ -89,18 +91,13 @@ for gen in range(depth):
         iiter=str(gen+1)+"."+str(i)
         print("ITER =",str(iiter))
         try:
-            #results.append((smi,dock_it(smi,prot_pdbqt,exhaust,iiter)))
+            # DOCKING - FOR REAL RUNS
+            # results.append((smi,dock_it(smi,prot_pdbqt,exhaust,iiter)))
+
+            # NO DOCKING - FOR TEST RUNS
             results.append((smi,ran.uniform(-6,0)))
         except Exception as e:
             logging.exception("IITER: "+str(iiter)+"; TYPE: "+type(e).__name__)
-        # # for testing purposes (will not run dock_it())
-        # try:
-        #     if i%7==0:
-        #         ran.uniform(whupsies)
-        #     else:
-        #         results.append((smi,ran.uniform(-12,0)))
-        # except Exception as e:
-        #     logging.exception("IITER: "+str(iiter)+"; TYPE: "+type(e).__name__)
 
     # record this generations results to the master list:
     generations.append(results)

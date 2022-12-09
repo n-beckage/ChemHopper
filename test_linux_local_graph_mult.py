@@ -17,7 +17,7 @@ types=["SINGLE","DOUBLE","TRIPLE","AROMATIC"]
 make_dirs(["logs","np_objs","configs","grids","vina_outs","mols"])
 
 # setting up log format (only needs to be done once)
-logging.basicConfig(filename='error_log.log', filemode='w',format='%(asctime)s -%(name)s:%(levelname)s- %(message)s')
+logging.basicConfig(filename='error_log.log', filemode='w',level=logging.INFO,format='%(asctime)s -%(name)s:%(levelname)s- %(message)s')
 
 
 # preparing the receptor
@@ -54,9 +54,11 @@ print('\n\n############\n DEPTH = '+str(depth)+' \n############\n')
 no_embed=[]
 
 # create generations (master) list, add the original parent results as the frist entry
+
+# DOCKING - FOR REAL RUNS
 generations=[[(parent_0,dock_it(lig_smile=parent_0,prot_pdbqt=prot_pdbqt,exhaustiveness=exhaust,iiter='0.0'))]]
 
-# for testing purposes (will not call dock_it())
+# NO DOCKING - USE FOR TESTING
 # generations=[[(parent_0,ran.uniform(-6,0))]]
 
 # Keeping a list containing all UNIQUE molecules created and tested
@@ -89,18 +91,14 @@ for gen in range(depth):
         iiter=str(gen+1)+"."+str(i)
         print("ITER =",str(iiter))
         try:
+            # DOCKING - FOR REAL RUNS
             results.append((smi,dock_it(smi,prot_pdbqt,exhaust,iiter)))
+
+            # NO DOCKING - FOR TEST RUNS
+            # results.append((smi,ran.uniform(-6,0)))
         except Exception as e:
             logging.exception("IITER: "+str(iiter)+"; TYPE: "+type(e).__name__)
-        # # for testing purposes (will not run dock_it())
-        # try:
-        #     if i%7==0:
-        #         ran.uniform(whupsies)
-        #     else:
-        #         results.append((smi,ran.uniform(-12,0)))
-        # except Exception as e:
-        #     logging.exception("IITER: "+str(iiter)+"; TYPE: "+type(e).__name__)
-
+        
     # record this generations results to the master list:
     generations.append(results)
 
@@ -110,26 +108,36 @@ for gen in range(depth):
     best_index=affinities.index(min(affinities))
     # adding the best perfomer to the best_path list
     best_path.append(results[best_index])
+    # Assigning the top molecule to be the next generation's parent
+    parent = results[best_index][0]
 
     ### produce an image of the molecules
     # first create a mol list
     uniq_mols=[]
+    bad_smis=[]
     for smi in uniq_desc:
         mol=Chem.MolFromSmiles(smi)
-        Chem.rdmolops.Kekulize(mol,clearAromaticFlags=True)
-        uniq_mols.append(mol)
-    # img=Draw.MolsToGridImage(uniq_mols,molsPerRow=int(len(uniq_mols)/10),subImgSize=(350,350),legends=[str(a) for a in affinities],maxMols=len(uniq_mols))
+        if mol is not None:
+            Chem.rdmolops.Kekulize(mol,clearAromaticFlags=True)
+            uniq_mols.append(mol)
+        else:
+            bad_smis.append(smi)
+            logging.info("BAD SMILE: "+smi)
+            print("BAD SMILE: ",smi)
 
     # returns index of the top molecule in uniq_desc
     best_index=uniq_desc.index(best_path[-1][0])
     top=uniq_mols[best_index]
     save_grids(uniq_mols,top,affinities,gen,8,10)
 
+    # print("Generations list is:")
+    # print(generations)
+
     print("BEST PATH:\n",best_path)
 
-    np.save("np_objs/generations.npy",np.array(generations,dtype=object))
-    np.save("np_objs/best_path.npy",np.array(best_path))
-    np.save("np_objs/no_embed.npy",np.array(no_embed))
+np.save("np_objs/generations.npy",np.array(generations,dtype=object))
+np.save("np_objs/best_path.npy",np.array(best_path))
+np.save("np_objs/no_embed.npy",np.array(no_embed))
 
 # tabulating the best path
 df=pd.DataFrame(best_path)
