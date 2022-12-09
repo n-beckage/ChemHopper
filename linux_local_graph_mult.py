@@ -35,9 +35,9 @@ parent_0='CC'
 # defining the exhaustiveness for Autodock Vina, now using keyboard input:
 print("\n\n\nWelcome to Chemical Space!")
 
-print("\n Please enter the name and SMILE string of your starting ligand:")
-parent_name=input("\nName = ")
-parent_0=input("\nSMILE = ")
+print("\nPlease enter the name and SMILE string of your starting ligand:")
+parent_name=input("Name = ")
+parent_0=input("SMILE = ")
 
 print("\nHow deep will you go?")
 
