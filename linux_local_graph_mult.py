@@ -26,18 +26,19 @@ prot_pdb='1e7a_aligned.pdb'
 prot_pdbqt=prot_pdb+'qt'
 
 ### Propofol SMILE string - parent molecule, patient 0, generations[0][0], etc
-# parent_0='CC(C)C1=C(C(=CC=C1)C(C)C)O'
-parent_name='Ethane'
-parent_0='CC'
+parent_0='CC(C)C1=C(C(=CC=C1)C(C)C)O'
+parent_name='Propofol'
+# parent_0='CC'
 #propofol=Chem.MolFromSmiles(propofol)
 #Draw.MolToFile(propofol,"propofol.png")
 
 # defining the exhaustiveness for Autodock Vina, now using keyboard input:
 print("\n\n\nWelcome to Chemical Space!")
 
-print("\nPlease enter the name and SMILE string of your starting ligand:")
-parent_name=input("Name = ")
-parent_0=input("SMILE = ")
+# # Use if you want the user to specify the ligans to be used
+# print("\nPlease enter the name and SMILE string of your starting ligand:")
+# parent_name=input("Name = ")
+# parent_0=input("SMILE = ")
 
 print("\nHow deep will you go?")
 
