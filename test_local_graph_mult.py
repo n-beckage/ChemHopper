@@ -26,10 +26,10 @@ prot_pdb='1e7a_aligned.pdb'
 prot_pdbqt=prot_pdb+'qt'
 
 ### Propofol SMILE string - parent molecule, patient 0, generations[0][0], etc
-# parent_0='CC(C)C1=C(C(=CC=C1)C(C)C)O'
+parent_0='CC(C)C1=C(C(=CC=C1)C(C)C)O'
 # using acetone as an example
-parent_name='Ethane'
-parent_0='CC'
+parent_name='Propofol'
+# parent_0='CC'
 #propofol=Chem.MolFromSmiles(propofol)
 #Draw.MolToFile(propofol,"propofol.png")
 
