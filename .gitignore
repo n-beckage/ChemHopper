@@ -1,4 +1,3 @@
-
 # No data needs to be pushed
 /data*/
 
@@ -11,6 +10,9 @@
 # No need for PDBs or PDBQTs
 *.pdb
 *.pdbqt
+
+# No need for HTML's
+*.html
 
 # Sublime projects
 *.sublime-project
@@ -32,3 +34,9 @@ __pycache__/**
 
 # or pycache files
 #*.pyc
+
+# Or ipynb checkpoints
+/.ipynb_checkpoints/
+
+# don't need this folder
+/chem_space_jmr_1_24_2023/
