@@ -493,10 +493,18 @@ def nextGen(parent_smi):
                 all_desc.append(mutate(parent_mol,atom,i,"P",0))
                 all_desc.append(mutate(parent_mol,atom,i,"S",0))
         if at_deg <= 1:
-            all_desc.append(mutate(parent_mol,atom,i,"F",0))
-            all_desc.append(mutate(parent_mol,atom,i,"Cl",0))
-            all_desc.append(mutate(parent_mol,atom,i,"Br",0))
-        
+            for element in atomic_names:
+                if element!=atom_n:
+                    all_desc.append(mutate(parent_mol,atom,i,element,0))
+            if atom_n=="F":
+                all_desc.append(mutate(parent_mol,atom,i,"Cl",0))
+                all_desc.append(mutate(parent_mol,atom,i,"Br",0))
+            if atom_n=="Cl":
+                all_desc.append(mutate(parent_mol,atom,i,"F",0))
+                all_desc.append(mutate(parent_mol,atom,i,"Br",0))
+            if atom_n=="Br":
+                all_desc.append(mutate(parent_mol,atom,i,"Cl",0))
+                all_desc.append(mutate(parent_mol,atom,i,"F",0))
 
         
         #### Try to add a single atom w/ new atom bonded to the existing atom on molecule
@@ -547,10 +555,14 @@ def nextGen(parent_smi):
                     all_desc.append(add_single_bond(parent_mol,atom,i,element))
                 for element in ["C","N","O","S","P"]:
                     all_desc.append(add_double_bond(parent_mol,atom,i,element))
+                for element in ["C","N"]:
+                    all_desc.append(add_triple_bond(parent_mol,atom,i,element))
             elif atom_n=="O":
                 #add single bonded atom
                 for element in atomic_names:
                     all_desc.append(add_single_bond(parent_mol,atom,i,element))
+                # add double bond to carbon
+                all_desc.append(add_double_bond(parent_mol,atom,i,"C"))
             elif atom_n=="P":
                 for element in atomic_names:
                     all_desc.append(add_single_bond(parent_mol,atom,i,element))
@@ -561,6 +573,8 @@ def nextGen(parent_smi):
                     all_desc.append(add_single_bond(parent_mol,atom,i,element))
                 for element in ["C","N","O","S","P"]:
                     all_desc.append(add_double_bond(parent_mol,atom,i,element))
+            elif atom_n in halo_names:
+                all_desc.append(add_single_bond(parent_mol,atom,i,"C"))
                 
         
         #### Try removing atom
@@ -688,4 +702,59 @@ def check_if_not_real(smiles):
         check_val=1
         
     return check_val
-        
+
+
+### def buildGraph:
+##### string seed - the SMILE string of the starting molecule to seed the graph
+##### int depth - the number of generations to explore
+##### boolean complete_connections - flag to determine wether or not to add the remaing connections to outermost nodes post-loop
+### returns nx.Graph chemical_space_graph - the completed chemical space graph
+def buildGraph(seed, depth, complete_connections = False):
+    leafs=[seed]#current 'leafs' (molecules whose neighbors we have not calculated yet)
+    chemical_space_graph = nx.Graph()# regular graph does not allow duplicate edges. Digraph would add directionality to edges. Regular graph is fine for now 
+
+    chemical_space_graph.add_node(seed)#I think adding the smiles string as the name of the node may simplify things
+
+    #now build the graph
+    for gen in range(1,depth+1):
+        #list of leafs for the next generation
+        new_leafs=[]
+        #list of times it took to process a leaf
+        leaf_times=[]
+        #loop over all leafs - leafs is the list of molecules whose neighbors have not been generated yet
+        for leaf in leafs:
+            #get the wall time
+            ti=time()
+            #comptue neighbors for the current leaf in the loop
+            all_neigh = nextGen(leaf)
+            ##Possibly speed this up by using 
+            for i,mol_smiles in enumerate(all_neigh): # iterates through the generated neighbors of the current leaf
+                #check if we have computed found this node yet
+                if mol_smiles not in chemical_space_graph.nodes:
+                    #add it to the graph
+                    chemical_space_graph.add_node(mol_smiles)
+                    #since its a new smiles add it to the new leaf list
+                    new_leafs.append(mol_smiles)
+                #add the edge to the graph
+                chemical_space_graph.add_edge(leaf,mol_smiles)
+            #get the difference in wall time
+            leaf_times.append(time()-ti)
+        #set the leaf list to the new one
+        leafs=new_leafs
+        print("number of leafs for next iter",len(leafs))
+        print("expected time for next generation",len(leafs)*np.average(leaf_times)/60,'minutes')
+    print("total number of nodes in the graph:",len(chemical_space_graph.nodes))
+    
+    if complete_connections:
+        print("all nodes created; now adding remaing edges")
+        # it will be most efficient to just add the last remaining connections post-loop, once all nodes are created
+        ti = time()
+        for j in leafs:
+            all_neigh=nextGen(j)
+            for smi in all_neigh:
+                if smi in chemical_space_graph.nodes:
+                    chemical_space_graph.add_edge(j,smi)
+        tf = time()
+        print("adding final edges took",(tf-ti)/60,"minutes")
+        print("expected time for next depth level",(((tf-ti)/60)/len(leafs))*len(leafs)*10,"minutes")
+    return chemical_space_graph
