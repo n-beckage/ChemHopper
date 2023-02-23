@@ -1,5 +1,11 @@
 from rdkit import Chem
 from rdkit.Chem import AllChem
+from rdkit.Chem import QED
+from rdkit.Chem import Lipinski
+from rdkit.Chem import Descriptors
+from rdkit.Chem import Crippen
+import networkx as nx
+from time import time
 import numpy as np
 from rdkit.Chem import Draw
 import subprocess as sp
@@ -11,6 +17,10 @@ import sys
 import random as ran
 import re
 import logging
+
+###JMR. Carefuly im disabling this but if you comment this out you can see all the warnings being generated.
+from rdkit import RDLogger
+RDLogger.DisableLog('rdApp.*')  
 
 ############# ChemTools.py ##############
 # Includes all the functions neccessary for the ChemHopper algorithm
@@ -312,7 +322,7 @@ def prepare_ligand(lig_file):
     os.chdir('../')
     return lig_file+'qt'
 
-    #### MY DOCK_IT()
+#### MY DOCK_IT()
 ### attempts to dock the molecule
 ## To do this, there a few unique steps. Create and prepare ligand pdb, prepare the receptor pdb (may only have to do this once if working with the same pocket), run vina (remember to log), and 
 ## return a docking score. First, we need to create a pdb file from the smile string we are inputting. That rewuires making a mol object, addding Hs, Embedding it (which acts like a legitimacy
@@ -734,7 +744,6 @@ def buildGraph(seed, depth, complete_connections = False):
         leafs=new_leafs
         print("number of leafs for next iter",len(leafs))
         print("expected time for next generation",len(leafs)*np.average(leaf_times)/60,'minutes')
-    print("total number of nodes in the graph:",len(chemical_space_graph.nodes))
     
     if complete_connections:
         print("all nodes created; now adding remaing edges")
@@ -748,4 +757,8 @@ def buildGraph(seed, depth, complete_connections = False):
         tf = time()
         print("adding final edges took",(tf-ti)/60,"minutes")
         print("expected time for next depth level",(((tf-ti)/60)/len(leafs))*len(leafs)*10,"minutes")
+
+    print("total number of nodes:",len(chemical_space_graph.nodes))
+    print("total number of edges",len(chemical_space_graph.edges))
+
     return chemical_space_graph

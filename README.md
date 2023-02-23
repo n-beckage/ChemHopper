@@ -1,5 +1,23 @@
 # ChemHopper Project Shop Log
 
+### 2/8/23
+
+Wow really haven't updated this in a while... don't worry things have been done in the past 3 months
+
+- Graph-building algorithm is complete, but slow
+- visualization with faerun is also complete, with QED added as a DL metric (it's the only continuous one)
+
+**Moving Forward:**
+
+- How can I reduce the number of edges in the graph without loosing its structure?
+- How can I make it more effecient?
+
+**Other work to be done:**
+
+- clean shit up! this isn't even a readme anymore...
+  - integrate linux and windows versions of the program into one, using `platform` module
+  - add timers and estimators to graphBuild (done), nextGen, and dock_it
+
 ### 11/20/22
 
 Things to do

@@ -1,16 +1,29 @@
 from rdkit import Chem
 from rdkit.Chem import AllChem
-import numpy as np
 from rdkit.Chem import Draw
-import subprocess as sp
-import pandas as pd
-from tabulate import tabulate as tab
-import os
+from rdkit.Chem import QED
+from rdkit.Chem import Lipinski
+from rdkit.Chem import Descriptors
+from rdkit.Chem import Crippen
+from faerun import faerun
+import logging
 import matplotlib.pyplot as plt
-import sys
+import numpy as np
+import networkx as nx
+import os
+import pandas as pd
 import random as ran
 import re
-import logging
+import sys
+import subprocess as sp
+from tabulate import tabulate as tab
+from time import time
+
+
+###JMR. Carefuly im disabling this but if you comment this out you can see all the warnings being generated.
+from rdkit import RDLogger
+RDLogger.DisableLog('rdApp.*')                                                                                                                                                           
+
 
 ############# ChemTools.py ##############
 # Includes all the functions neccessary for the ChemHopper algorithm
@@ -22,6 +35,7 @@ import logging
 # Corresponding atomic numbers of atomic_names
 allowed_atomic=[6,7,8,9,15,16,17,35]
 atomic_names=["C","N","O","F","P","S","Cl","Br"]
+#Have you validated the Phosphorus chemistry? I would be careful here and think about the chemistry more. Many of the molecules when i look at the chemical space graph have wild phosphorus and sulfer chemistry 
 halogens=[9,17,35]
 halo_names=["F","Cl","Br"]
 type_i=[0,1,2,1.5]
@@ -310,7 +324,7 @@ def prepare_ligand(lig_file):
     os.chdir('../')
     return lig_file+'qt'
 
-    #### MY DOCK_IT()
+#### MY DOCK_IT()
 ### attempts to dock the molecule
 ## To do this, there a few unique steps. Create and prepare ligand pdb, prepare the receptor pdb (may only have to do this once if working with the same pocket), run vina (remember to log), and 
 ## return a docking score. First, we need to create a pdb file from the smile string we are inputting. That rewuires making a mol object, addding Hs, Embedding it (which acts like a legitimacy
@@ -564,8 +578,7 @@ def nextGen(parent_smi):
                 for element in ["C","N","O","S","P"]:
                     all_desc.append(add_double_bond(parent_mol,atom,i,element))
             elif atom_n in halo_names:
-                all_desc.append(add_single_bond(parent_mol,atom,i,"C"))
-                
+                all_desc.append(add_single_bond(parent_mol,atom,i,"C"))      
         
         #### Try removing atom
         if at_deg==1:#no worries
@@ -609,23 +622,6 @@ def nextGen(parent_smi):
                             all_desc.append(make_double(parent_mol,bond,i))
                     elif(degree1==1 and degree2==1):
                         all_desc.append(make_double(parent_mol,bond,i))
-#                     #try making it a double bond
-#                     #print(i+1,is_aromatic(parent_mol,bond))
-#                     if (aname1 == "C") and (aname2 == "C"):#(aname1 == "C" or aname1 == "N") and (aname2 == "C" or aname2 == "N"):
-#                         if degree1<=3 and degree2<=3:#only two tertiary carbons can form a double bond (ignoring N+ )
-#                             all_desc.append(make_double(parent_mol,bond,i))
-#                     elif (aname1 == "O") and (aname2 == "C"):# a single bond with O-C
-#                         if degree1==1 and degree2<=3:#check if O is single degree and C is <terterary
-#                             all_desc.append(make_double(parent_mol,bond,i))# hydroxyl -> carbonyl
-#                     elif (aname1 == "C") and (aname2 == "O"):# a single bond with C-O
-#                         if degree1<=3 and degree2==1:#check if O is single degree and C is <terterary
-#                             all_desc.append(make_double(parent_mol,bond,i))# hydroxyl -> carbonyl      
-#                     elif aname1 == "C" and aname2 == "N":# a single bond with C-N
-#                         if degree1<=3 and degree2<=2:#check if N is 2 degree and C is <terterary
-#                             all_desc.append(make_double(parent_mol,bond,i))# 
-#                     elif aname1 == "N" and aname2 == "C":# a single bond with N-C
-#                         if degree1<=2 and degree2<=3:#check if N is 2 degree and C is <terterary
-#                             all_desc.append(make_double(parent_mol,bond,i))# 
                     #try making it a triple bond    
                     #-C#N or -C#C or -C#C-
                     if (aname1 =="N" and degree1==1 and aname2=="C" and degree2<=2) or (aname1 =="C" and degree1<=2 and aname2=="N" and degree2==1) :# -C-N -> -C#N
@@ -667,12 +663,43 @@ def nextGen(parent_smi):
     all_set = [x for x in all_set if check_if_not_real(x) ==0 ]
     return all_set
 
+### JMR returns some atom properties based on your GPCRLigNet.frame_data.py
+def get_mol_props(smiles):
+    mol=Chem.MolFromSmiles(smiles)
+    
+    NHD=Lipinski.NumHDonors(mol)
+    NHA=Lipinski.NumHAcceptors(mol)
+    MWT=Descriptors.ExactMolWt(mol)
+    MLP=Descriptors.MolLogP(mol)
+    MMR=Crippen.MolMR(mol)
+    NAT=mol.GetNumAtoms()#notice the mol object generated from the smiles has this method
+    PSA=QED.properties(mol)[4]#a bit redundant sincewe already calculated some of these
+    #QEDproperties(MW=180.15899999999996, ALOGP=1.3101, HBA=4, HBD=1, PSA=63.60000000000001, ROTB=2, AROM=1, ALERTS=2)
+    return NHD,NHA,MWT,MLP,MMR,NAT,PSA
+
+### JMR checks if the molecule is real, returns 1 if it is not
+def check_if_not_real(smiles):
+    #try to add hydrogens and give it 3d coordinates
+    try:
+        mol=Chem.MolFromSmiles(smiles)
+        m2=Chem.AddHs(mol)
+        check_val=AllChem.EmbedMolecule(m2)
+    except:
+        check_val=1
+        
+    return check_val
+
+
 ### def buildGraph:
 ##### string seed - the SMILE string of the starting molecule to seed the graph
 ##### int depth - the number of generations to explore
 ##### boolean complete_connections - flag to determine wether or not to add the remaing connections to outermost nodes post-loop
 ### returns nx.Graph chemical_space_graph - the completed chemical space graph
 def buildGraph(seed, depth, complete_connections = False):
+    start_time = time()
+    print('GRAPH PARAMETERS')
+    print(tab([[seed, depth, complete_connections]],headers=['Seed','Depth','Complete Connections']),'\n')
+    
     leafs=[seed]#current 'leafs' (molecules whose neighbors we have not calculated yet)
     chemical_space_graph = nx.Graph()# regular graph does not allow duplicate edges. Digraph would add directionality to edges. Regular graph is fine for now 
 
@@ -705,19 +732,35 @@ def buildGraph(seed, depth, complete_connections = False):
         #set the leaf list to the new one
         leafs=new_leafs
         print("number of leafs for next iter",len(leafs))
-        print("expected time for next generation",len(leafs)*np.average(leaf_times)/60,'minutes')
-    print("total number of nodes in the graph:",len(chemical_space_graph.nodes))
+
+        # estimating and reporting time for next generation of nodes to be added
+        expected_time = len(leafs)*np.average(leaf_times)
+        print("expected time for next iter:",reportTime(expected_time))
     
     if complete_connections:
-        print("all nodes created; now adding remaing edges")
+        print("all nodes created; now adding remaing edges (expected time above)")
         # it will be most efficient to just add the last remaining connections post-loop, once all nodes are created
         ti = time()
-        for j in leafs:
-            all_neigh=nextGen(j)
-            for smi in all_neigh:
-                if smi in chemical_space_graph.nodes:
-                    chemical_space_graph.add_edge(j,smi)
-        tf = time()
-        print("adding final edges took",(tf-ti)/60,"minutes")
-        print("expected time for next depth level",(((tf-ti)/60)/len(leafs))*len(leafs)*10,"minutes")
+        for leaf in leafs:
+            all_neigh=nextGen(leaf)
+            for neigh in all_neigh:
+                if neigh in chemical_space_graph.nodes:
+                    chemical_space_graph.add_edge(leaf,neigh)
+        tf = time() - ti
+        print("adding final edges actually took:",reportTime(tf))
+
+    build_time = time() - start_time
+    print("total build time for this graph:",reportTime(build_time))
+
+    print("total number of nodes:",chemical_space_graph.number_of_nodes())
+    print("total number of edges",chemical_space_graph.number_of_edges())
+
     return chemical_space_graph
+
+### def reportTime
+##### float t - total time in seconds
+### returns a string reporting the time in hours:minutes:seconds
+def reportTime(t):
+    hours, remainder = divmod(t, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return "{:.0f}:{:02.0f}:{:02}".format(hours,minutes,round(seconds))
