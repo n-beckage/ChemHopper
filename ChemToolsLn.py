@@ -1,22 +1,24 @@
 from rdkit import Chem
 from rdkit.Chem import AllChem
+from rdkit.Chem import Draw
 from rdkit.Chem import QED
 from rdkit.Chem import Lipinski
 from rdkit.Chem import Descriptors
 from rdkit.Chem import Crippen
-import networkx as nx
-from time import time
-import numpy as np
-from rdkit.Chem import Draw
-import subprocess as sp
-import pandas as pd
-from tabulate import tabulate as tab
-import os
+from faerun import faerun
+import logging
 import matplotlib.pyplot as plt
-import sys
+import networkx as nx
+import numpy as np
+import networkx as nx
+import os
+import pandas as pd
 import random as ran
 import re
-import logging
+import sys
+import subprocess as sp
+from tabulate import tabulate as tab
+from time import time
 
 ###JMR. Carefuly im disabling this but if you comment this out you can see all the warnings being generated.
 from rdkit import RDLogger

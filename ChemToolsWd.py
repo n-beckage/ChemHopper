@@ -8,6 +8,7 @@ from rdkit.Chem import Crippen
 from faerun import faerun
 import logging
 import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
 import networkx as nx
 import os
@@ -216,6 +217,23 @@ def add_single(m,ai,aj):
     edit_mol=Chem.rdchem.RWMol(m)
     edit_mol.AddBond(ai,aj,order=Chem.rdchem.BondType.SINGLE)
     new_smi=Chem.MolToSmiles(edit_mol)
+    return new_smi
+
+### adds a single intramolecular bond and returns a new SMILE string
+## m - the mol object to be changed
+## ati - the index of the first atom
+## atj - the index of the second atom
+def add_single_intrabond(m,ati,atj):
+    # RWMol is a subclass of the Mol object class that is basically an editable form of a Mol
+    ## https://herongyang.com/Cheminformatics/RDKit-rdkit-Chem-rdchem-RWMol-Class.html#:~:text=rdkit.Chem.rdchem.RWMol%20represents%20a%20molecule%20class%20with%20additional%20read,some%20useful%20methods%20provided%20in%20the%20RWMol%20sub-class.
+    edit_mol=Chem.rdchem.RWMol(m)
+    # adds the new bond, returns the new number of bonds
+    edit_mol.AddBond(ati,atj,Chem.BondType.SINGLE)
+    # the new smile string generated is sometimes weird, but still encodes the molecule so I guess it's alright
+    new_smi=Chem.MolToSmiles(edit_mol)
+    #currently deliminates sterochemistry uhg..
+    #check out https://github.com/rdkit/rdkit/issues/2627
+    #exit()
     return new_smi
 
 ### adds a double bond between two atoms already present with the molecule (for intramolecular bonds)
