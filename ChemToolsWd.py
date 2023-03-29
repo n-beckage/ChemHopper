@@ -441,6 +441,68 @@ def save_grids(mols,top,affinities,gen,row_len=8,col_len=10,highlight=True):
         grids.append(img)
     return grids
 
+
+# Ring-building chunk to add to nextGen() ***IN-PROGRESS****
+def buildRings(smile):
+    new_smis = []
+    mol = Chem.MolFromSmiles(smile)
+    mol = Chem.rdchem.RWMol(mol)
+    # kekulize so that aromatic bonds are treated as alternative double/single bonds, but keep aromatic flags on atoms
+    Chem.rdmolops.Kekulize(mol,clearAromaticFlags=False) # clearAromaticFlags default param is False btw
+    for i, atom in enumerate(mol.GetAtoms()):
+        # use i+1 to avoid i=j; this would cause GetShortestPath() to throw an error
+        # You might think it would be efficient to start the enumeration here at i+4, that way we don't waste time generating paths
+        # between atoms that are less than 4 bonds away; good thinking, but doesn't work due to the way rdkit assigns atom indices.
+        # These indices quickly become arbitrary as the complexity of the molecule increases, which means that the difference in
+        # indices does not relate to the distance between atoms. For instance, for propofol, atoms 3 and 13 are seperated by 4 bonds,
+        # but the difference in indices is 10.
+        for j in range(i+1, mol.GetNumAtoms()):
+            # a list of atoms to traverse to get from atom i to j (includes i and j)
+            path = Chem.GetShortestPath(mol, i, j)
+            # the number of bonds that seperate atom i from j
+            distance = len(path)-1
+            # only try to from 5 or 6 membered rings (remember distance is the # of bonds seperating 2 atoms)
+            if distance==4 or distance==5: # the largest filter - goes first
+                # list of path atoms, but converted to True or False depending wether or not each path atom is in a ring
+                path_atoms_in_ring = [mol.GetAtomWithIdx(a).IsInRing() for a in path]
+                # Rules for paths over aromatic rings: if any atoms within the path are flagged as aromatic...
+                if any(mol.GetAtomWithIdx(a).GetIsAromatic()==True for a in path):
+                    # getting ring info from the mol
+                    rings = mol.GetRingInfo()
+                    # list containing the number of rings an atom is part of for all the atoms in path
+                    num_rings_atoms_are_in = [rings.NumAtomRings(a) for a in path]
+                    # valid building pattern for 3 ring atoms
+                    val_pat = [1,2,1]
+                    if sum(path_atoms_in_ring)==3:
+                        if any(num_rings_atoms_are_in[x:x+len(val_pat)] == val_pat for x in range(len(num_rings_atoms_are_in)-len(val_pat)+1)):
+                            new_smis.append(add_single_intrabond(mol,i,j))
+                    if sum(path_atoms_in_ring) in [1,2]:
+    #                     print(path_atoms_in_ring)
+                        new_smis.append(add_single_intrabond(mol,i,j))
+                    if sum(path_atoms_in_ring)==4:
+                        ai, aj = mol.GetAtomWithIdx(i).GetSymbol(), mol.GetAtomWithIdx(j).GetSymbol()
+                        if (ai in ["N","O","S"]) ^ (aj in ["N","O","S"]):
+                            new_smis.append(add_single_intrabond(mol,i,j))
+                # Rules for paths over non-aromatic rings
+                # ...if no atoms are aromatic, but still in a ring
+                # if the number of path atoms in a non-aromatic ring are exactly 1,2,3, or 4 (these rules apply to 5 and 6-membered rings)
+                elif sum(path_atoms_in_ring) in [1,2,3,4]:
+                    new_smis.append(add_single_intrabond(mol,i,j))
+                # Rules for paths over non-rings (atom chains)
+                # ... if path atoms are neither aromatic or in a ring
+                elif sum(path_atoms_in_ring)==0:
+                    new_smis.append(add_single_intrabond(mol,i,j))
+    
+    ## the below lines 'align' smile strings basically (see duplicate bug described in phenethylamine test)
+    # converting all new smiles into mol objects
+    new_mols = [Chem.MolFromSmiles(smi) for smi in new_smis]
+    # converting all new mols back into smis - to fix the synonymous smiles bug
+    corrected_new_smis = [Chem.MolToSmiles(mol) for mol in new_mols if mol != None]
+    # remove duplicates
+    new_smis_uniq=list(dict.fromkeys(corrected_new_smis))
+    return new_smis_uniq
+
+
 ### def nextGen(parent_smi,master_list)
 ##### string parent_smi - the SMILE string of the parent molecule
 ### returns:
