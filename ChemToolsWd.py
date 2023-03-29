@@ -13,6 +13,7 @@ import numpy as np
 import networkx as nx
 import os
 import pandas as pd
+import platform as pf
 import random as ran
 import re
 import sys
@@ -24,7 +25,6 @@ from time import time
 ###JMR. Carefuly im disabling this but if you comment this out you can see all the warnings being generated.
 from rdkit import RDLogger
 RDLogger.DisableLog('rdApp.*')                                                                                                                                                           
-
 
 ############# ChemTools.py ##############
 # Includes all the functions neccessary for the ChemHopper algorithm
@@ -306,7 +306,7 @@ def make_dirs(dirs):
 ## cpu - number of CPUs to use; deafult is to detect the number available and use those
 ## num_modes  max number of binding modes to generate
 ## score_only - can the search space be omitted? true/false
-def configure(receptor,ligand,iteration='test',fname="config",size=20,exhaustiveness=8,center_x=12.95,center_y=15.76,center_z=2.28,out='vina_outs/out',cpu=16,num_modes=9,score_only=False):
+def configure(receptor,ligand,iteration='test',fname="config",size=20,exhaustiveness=8,center_x=12.95,center_y=15.76,center_z=2.28,out='vina_outs/out',cpu=16,num_modes=9,seed=0,verbosity=1,score_only=False):
     config_i=fname+"_"+iteration+'.txt'
     out_name=out+"_"+iteration
     os.chdir('configs')
@@ -322,7 +322,9 @@ def configure(receptor,ligand,iteration='test',fname="config",size=20,exhaustive
         f.write('size_z = '+str(size)+'\n\n')
         f.write('exhaustiveness = '+str(exhaustiveness)+'\n\n')
         f.write('cpu = '+str(cpu)+'\n\n')
-        f.write('num_modes = '+str(num_modes))
+        f.write('num_modes = '+str(num_modes)+'\n\n')
+        f.write('seed = '+str(seed)+'\n\n')
+        f.write('verbosity = '+str(verbosity))
         if score_only:
             f.write('\n\nscore_only = true')
     os.chdir('../')
@@ -331,14 +333,20 @@ def configure(receptor,ligand,iteration='test',fname="config",size=20,exhaustive
 ### prepares the receptor for docking with vina, returns the file name in .pdbqt format
 ## prot_file - the name of the pdb file of the protein/pocket/receptor
 def prepare_receptor(prot_file):
-    sp.call("python2 C:/Users/nbeck/Desktop/Summer_Research_2022/docking/prepare_receptor4.py -r "+prot_file+" -v",shell=True)
+    if pf.system()=='Linux':
+        sp.call("pythonsh ~/Desktop/ChemHopper/docking/prepare_receptor4.py -r "+prot_file+" -v",shell=True)
+    elif pf.system()=='Windows':
+        sp.call("python2 C:/Users/nbeck/Desktop/Summer_Research_2022/docking/prepare_receptor4.py -r "+prot_file+" -v",shell=True)
     return prot_file+'qt'
 
 ### prepares the ligand for docking with vina, returns the file name in .pdbqt format
 ## lig_file - the name of the pdb file of the mol/ligand
 def prepare_ligand(lig_file):
     os.chdir('mols')
-    sp.call("python2 C:/Users/nbeck/Desktop/Summer_Research_2022/docking/prepare_ligand4.py -l "+lig_file+" -v",shell=True)
+    if pf.system()=='Linux':
+        sp.call("pythonsh ~/Desktop/ChemHopper/docking/prepare_ligand4.py -l "+lig_file+" -v",shell=True)
+    elif pf.system()=='Windows':
+        sp.call("python2 C:/Users/nbeck/Desktop/Summer_Research_2022/docking/prepare_ligand4.py -l "+lig_file+" -v",shell=True)
     os.chdir('../')
     return lig_file+'qt'
 
@@ -375,11 +383,14 @@ def dock_it(lig_smile,prot_pdbqt,exhaustiveness=8,iiter='test'):
     Chem.rdmolfiles.MolToPDBFile(mh,lig_pdb)
     # prepares ligand and returns lig_pdbqt
     lig_pdbqt=prepare_ligand(lig_pdb)
-    configuration,out_name=configure(prot_pdbqt,lig_pdbqt,iiter,exhaustiveness=exhaustiveness)
+    configuration,out_name=configure(prot_pdbqt,lig_pdbqt,iiter,exhaustiveness=exhaustiveness,seed=1,verbosity=2)
     # runs vina and logs results
     logfile="logs/log_"+iiter+".txt"
     with open(logfile,'w') as log:
-        run=sp.run("vina --config=configs/"+configuration,shell=True,stdout=log)
+        if pf.system()=='Linux':
+            run=sp.run("vina_1.2.3_linux_x86_64 --config=configs/"+configuration,shell=True,stdout=log)
+        elif pf.system()=='Windows':
+            run=sp.run("vina --config=configs/"+configuration,shell=True,stdout=log)
     # splitting output
     sp.call("vina_split --input "+out_name+'.pdbqt',shell=True)
     # deleting the original out file from vina plus all but the best modes from vina_split
