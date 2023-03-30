@@ -1,4 +1,4 @@
-from ChemToolsWd import *
+from ChemTools import *
 
 ### define some chemical data
 

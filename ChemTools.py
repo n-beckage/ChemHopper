@@ -523,7 +523,11 @@ def nextGen(parent_smi):
     parent_mol=Chem.MolFromSmiles(parent_smi)
     # Not sure what this line does specifically, but it is necessary so that the function degree() returns the proper bond counts.  
     # JMR "kekulizing" means turning groups of aromatic bonds into alternating single and double bonds.
+    if parent_mol == None:
+        return None
     Chem.rdmolops.Kekulize(parent_mol,clearAromaticFlags=True)
+
+
 
     # Begin working through the molecular editing process - iterating through ATOMS
     for i,atom in enumerate(parent_mol.GetAtoms()):
