@@ -5,9 +5,10 @@ from rdkit.Chem import QED
 from rdkit.Chem import Lipinski
 from rdkit.Chem import Descriptors
 from rdkit.Chem import Crippen
-from faerun import faerun
+from faerun import Faerun
 import logging
 import matplotlib.pyplot as plt
+from mhfp.encoder import MHFPEncoder
 import networkx as nx
 import numpy as np
 import networkx as nx
@@ -16,6 +17,7 @@ import pandas as pd
 import platform as pf
 import random as ran
 import re
+from sklearn.manifold import TSNE
 import sys
 import subprocess as sp
 from tabulate import tabulate as tab
@@ -503,12 +505,15 @@ def buildRings(smile):
                 # ... if path atoms are neither aromatic or in a ring
                 elif sum(path_atoms_in_ring)==0:
                     new_smis.append(add_single_intrabond(mol,i,j))
-    
+    # aligning smiles, removing bad smiles, removing duplicates
+    return tightenSmileList(new_smis)
+
+def tightenSmileList(new_smis):
     ## the below lines 'align' smile strings basically (see duplicate bug described in phenethylamine test)
     # converting all new smiles into mol objects
     new_mols = [Chem.MolFromSmiles(smi) for smi in new_smis]
     # converting all new mols back into smis - to fix the synonymous smiles bug
-    corrected_new_smis = [Chem.MolToSmiles(mol) for mol in new_mols if mol != None]
+    corrected_new_smis = [Chem.MolToSmiles(mol) for mol in new_mols if mol is not None]
     # remove duplicates
     new_smis_uniq=list(dict.fromkeys(corrected_new_smis))
     return new_smis_uniq
@@ -751,12 +756,8 @@ def nextGen(parent_smi):
             tmp_mol=Chem.MolFromSmiles(tmp_mols)
             if check_connected(tmp_mol)==1:
                 all_desc.append(tmp_mols)
-    
-    # code to remove duplicate smile strings while maintaining relative order
-    # all_set may still contain molecules already in the master_list
-    all_set = list(dict.fromkeys(all_desc))
-    all_set = [x for x in all_set if check_if_not_real(x) ==0 ]
-    return all_set
+    # remove bad smiles, duplicates, align smiles
+    return tightenSmileList(all_desc)
 
 ### JMR returns some atom properties based on your GPCRLigNet.frame_data.py
 def get_mol_props(smiles):
@@ -791,7 +792,7 @@ def check_if_not_real(smiles):
 ##### boolean complete_connections - flag to determine wether or not to add the remaing connections to outermost nodes post-loop
 ### returns nx.Graph chemical_space_graph - the completed chemical space graph
 def buildGraph(seed, depth, complete_connections = False):
-    start_time = time()
+    start_graph_time = time()
     print('GRAPH PARAMETERS')
     print(tab([[seed, depth, complete_connections]],headers=['Seed','Depth','Complete Connections']),'\n')
     
@@ -844,7 +845,7 @@ def buildGraph(seed, depth, complete_connections = False):
         tf = time() - ti
         print("adding final edges actually took:",reportTime(tf))
 
-    build_time = time() - start_time
+    build_time = time() - start_graph_time
     print("total build time for this graph:",reportTime(build_time))
 
     print("total number of nodes:",chemical_space_graph.number_of_nodes())
@@ -859,3 +860,102 @@ def reportTime(t):
     hours, remainder = divmod(t, 3600)
     minutes, seconds = divmod(remainder, 60)
     return "{:.0f}:{:02.0f}:{:02}".format(hours,minutes,round(seconds))
+
+def faerunPlot(chemical_space_graph, scatter_name):
+    enc = MHFPEncoder(1024)
+    #the min hash fingerprint from the mhfp package
+    fps=[]
+    print('encoding molecules using MHFP')
+    node_labels = []#Faerun has something internal that turns the smiles into a molecule image (sweeeet)
+    for i, s in enumerate(chemical_space_graph.nodes):
+        node_labels.append(s)
+        ###instead of the minimal spanning tree of the chemical space graph we will use a more traditional method for determinine node positions
+        fps.append(np.array(enc.encode_mol(Chem.MolFromSmiles(s))))
+
+    #lf = tm.LSHForest(1024, 64)
+    #x_posit, y_posit, start_tmap, termini_tmap, _ = tm.layout_from_lsh_forest(lf)# this is also not supported on my macOS
+    fps=np.array(fps)
+    print('fingerprint array shape',fps.shape)
+    #use TSNE to visualize the chemical space
+    time_init=time()
+    print('computing the t-distributed stochastic neighbor embedding')
+    X_embedded = TSNE(n_components=2, learning_rate='auto', init='random', perplexity=3).fit_transform(fps)
+    x_posit=X_embedded[:,0]
+    y_posit=X_embedded[:,1]
+    print('computing the t-distributed stochastic neighbor embedding took',(time()-time_init),'seconds')
+    ### I tried to directly add the chemical space graph, but my macOS didn't support layout_from_edge_list (smh)
+    ### we can still add the links from the chemical space graph
+    print('extracting edges from the CSG')
+    start_nodes=[]
+    end_nodes=[]
+    for edges in chemical_space_graph.edges:
+        start_nodes.append(node_labels.index(edges[0]))
+        end_nodes.append(node_labels.index(edges[1]))
+    # ## Turns out we dont need tmap for a minimal spanning tree. tmap's thing is speed, so maybe we want to move to it in the future
+    # ## I ran into prioblems specific to macOS that i dont want to debug https://github.com/reymond-group/tmap/issues/12
+    # chemical_space_tree=nx.minimum_spanning_tree(chemical_space_graph)
+    # ## now compute an xy representation of the tree (https://stackoverflow.com/questions/57512155/how-to-draw-a-tree-more-beautifully-in-networkx)
+    # ##this was pretty slow for me
+    # pos_dict = nx.nx_agraph.graphviz_layout(chemical_space_tree, prog="twopi")
+    # x_posit=[]
+    # y_posit=[]
+    # for node in node_labels:
+    #    x_posit.append(pos_dict[node][0])
+    #    y_posit.append(pos_dict[node][1])
+    # x_posit=(np.array(x_posit)-np.min(x_posit))/(np.max(x_posit)-np.min(x_posit))
+    # y_posit=(np.array(y_posit)-np.min(y_posit))/(np.max(y_posit)-np.min(y_posit))
+    print('computing some molecule properties')
+    #use a physchem prop for coloring
+    color_values=[]
+    #properties to include
+    NHD=[]
+    NHA=[]
+    MWT=[]
+    MLP=[]
+    MMR=[]
+    NAT=[]
+    PSA=[]
+    # adding a continuous druglikeness metric
+    qed=[]
+
+    for node_smiles in node_labels:
+        mol_props=get_mol_props(node_smiles)
+        NHD.append(mol_props[0])
+        NHA.append(mol_props[1])
+        MWT.append(mol_props[2])
+        MLP.append(mol_props[3])
+        MMR.append(mol_props[4])
+        NAT.append(mol_props[5])
+        PSA.append(mol_props[6])
+        qed.append(QED.default(Chem.MolFromSmiles(node_smiles)))
+
+    # plt.scatter(x_posit,y_posit)
+    # plt.show()
+    print('generating faerun .html')
+    faerun = Faerun(view="front", coords=False)
+#     scatter_name="Aspirin_Chemical_Space"
+    tree_name="Aspirin_Chemical_Space_Tree"
+    faerun.add_scatter(
+        scatter_name,
+        {"x": x_posit, "y": y_posit, "c":[NHD,
+                    NHA,
+                    MWT,
+                    MLP,
+                    MMR,
+                    NAT,
+                    PSA,
+                    qed], "labels": node_labels},
+        shader="smoothCircle",
+        point_scale=2.0,
+        max_point_size=20,
+
+        categorical=[True, True, False, False, False, False,False],
+        colormap=["tab10", "tab10", "Blues", "Blues", "Blues", "Blues","Blues","plasma"],
+        series_title=['NHD','NHA','MWT','MLP','MMR','NAT','PSA','QED'],
+        has_legend=True,
+    )
+
+    faerun.add_tree(tree_name, {"from": start_nodes, "to": end_nodes}, point_helper=scatter_name, color="#222222")
+
+
+    faerun.plot(scatter_name,template="smiles")
