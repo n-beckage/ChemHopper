@@ -38,5 +38,6 @@ __pycache__/**
 # Or ipynb checkpoints
 /.ipynb_checkpoints/
 
-# don't need this folder
+# don't need these folders
 /chem_space_jmr_1_24_2023/
+/csGraphs/
