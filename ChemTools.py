@@ -764,7 +764,6 @@ def nextGen(parent_smi):
 ### JMR returns some atom properties based on your GPCRLigNet.frame_data.py
 def get_mol_props(smiles):
     mol=Chem.MolFromSmiles(smiles)
-    
     NHD=Lipinski.NumHDonors(mol)
     NHA=Lipinski.NumHAcceptors(mol)
     MWT=Descriptors.ExactMolWt(mol)
@@ -891,20 +890,74 @@ def reportTime(t):
     minutes, seconds = divmod(remainder, 60)
     return "{:.0f}:{:02.0f}:{:02}".format(hours,minutes,round(seconds))
 
-def faerunPlot(chemical_space_graph, scatter_name):
+### def get_node_labels_fps()
+##### nx.Graph csg - the chemical space graph
+### returns list - the SMILE strings of each node [list] and their corresponding fingerprints [list]
+def get_node_labels_fps(csg):
     enc = MHFPEncoder(1024)
     #the min hash fingerprint from the mhfp package
     fps=[]
     print('encoding molecules using MHFP')
     node_labels = []#Faerun has something internal that turns the smiles into a molecule image (sweeeet)
-    for i, s in enumerate(chemical_space_graph.nodes):
+    for i, s in enumerate(csg.nodes):
         node_labels.append(s)
         ###instead of the minimal spanning tree of the chemical space graph we will use a more traditional method for determinine node positions
         fps.append(np.array(enc.encode_mol(Chem.MolFromSmiles(s))))
+    fps=np.array(fps)
+    return node_labels, fps
+
+### def getPlotList()
+##### list node_labels - all of the smiles from the graph
+### returns prop_list - 8 molecular properties for each of the smiles; a single list for each property, 8 lists total-> [8x[]]
+### dependencies: get_mol_props()
+def getPropList(node_labels):
+    #properties to include
+    NHD=[]
+    NHA=[]
+    MWT=[]
+    MLP=[]
+    MMR=[]
+    NAT=[]
+    PSA=[]
+    # adding a continuous druglikeness metric
+    qed=[]
+
+    # prop_list = [NHD,NHA,MWT,MLP,MMR,NAT,PSA,qed]
+    prop_list = [[],[],[],[],[],[],[],[]]
+    for node_smiles in node_labels:
+        # mol_props is a list of all the molecular properties for a given smile
+        mol_props=get_mol_props(node_smiles)
+        # for i, prop in enumerate(mol_props):
+        #     prop_list[i].append(mol_props[i])
+        #     # from rdkit.Chem import QED
+        # prop_list[7] = QED.default(Chem.MolFromSmiles(node_smiles))
+        NHD.append(mol_props[0])
+        NHA.append(mol_props[1])
+        MWT.append(mol_props[2])
+        MLP.append(mol_props[3])
+        MMR.append(mol_props[4])
+        NAT.append(mol_props[5])
+        PSA.append(mol_props[6])
+        qed.append(QED.default(Chem.MolFromSmiles(node_smiles)))
+    return NHD, NHA, MWT, MLP, MMR, NAT, PSA, qed
+# mol_props - list: a list of properties for a given smile from get_mol_props
+# node_labels - list of all the smiles in the graph
+# fps - corresponding list of all the fingerprints from the graph
+# prop_list - list of all the molecular properties of all the molecules in the graph (corresponds with above). 
+def faerunPlot(chemical_space_graph, scatter_name,node_labels,fps,prop_list):
+    # enc = MHFPEncoder(1024)
+    # #the min hash fingerprint from the mhfp package
+    # fps=[]
+    # print('encoding molecules using MHFP')
+    # node_labels = []#Faerun has something internal that turns the smiles into a molecule image (sweeeet)
+    # for i, s in enumerate(chemical_space_graph.nodes):
+    #     node_labels.append(s)
+    #     ###instead of the minimal spanning tree of the chemical space graph we will use a more traditional method for determinine node positions
+    #     fps.append(np.array(enc.encode_mol(Chem.MolFromSmiles(s))))
 
     #lf = tm.LSHForest(1024, 64)
     #x_posit, y_posit, start_tmap, termini_tmap, _ = tm.layout_from_lsh_forest(lf)# this is also not supported on my macOS
-    fps=np.array(fps)
+    # fps=np.array(fps)
     print('fingerprint array shape',fps.shape)
     #use TSNE to visualize the chemical space
     time_init=time()
@@ -937,27 +990,32 @@ def faerunPlot(chemical_space_graph, scatter_name):
     print('computing some molecule properties')
     #use a physchem prop for coloring
     color_values=[]
-    #properties to include
-    NHD=[]
-    NHA=[]
-    MWT=[]
-    MLP=[]
-    MMR=[]
-    NAT=[]
-    PSA=[]
-    # adding a continuous druglikeness metric
-    qed=[]
+    # #properties to include
+    # NHD=[]
+    # NHA=[]
+    # MWT=[]
+    # MLP=[]
+    # MMR=[]
+    # NAT=[]
+    # PSA=[]
+    # # adding a continuous druglikeness metric
+    # qed=[]
 
-    for node_smiles in node_labels:
-        mol_props=get_mol_props(node_smiles)
-        NHD.append(mol_props[0])
-        NHA.append(mol_props[1])
-        MWT.append(mol_props[2])
-        MLP.append(mol_props[3])
-        MMR.append(mol_props[4])
-        NAT.append(mol_props[5])
-        PSA.append(mol_props[6])
-        qed.append(QED.default(Chem.MolFromSmiles(node_smiles)))
+    # prop_list = [NHD,NHA,MWT,MLP,MMR,NAT,PSA,qed]
+
+    # old way; will now call get_mol_props() independently of faerunPlot()
+    # for node_smiles in node_labels:
+    #     mol_props=get_mol_props(node_smiles)
+    #     NHD.append(mol_props[0])
+    #     NHA.append(mol_props[1])
+    #     MWT.append(mol_props[2])
+    #     MLP.append(mol_props[3])
+    #     MMR.append(mol_props[4])
+    #     NAT.append(mol_props[5])
+    #     PSA.append(mol_props[6])
+    #     qed.append(QED.default(Chem.MolFromSmiles(node_smiles)))
+
+    NHD, NHA, MWT, MLP, MMR, NAT, PSA, qed = prop_list
 
     # plt.scatter(x_posit,y_posit)
     # plt.show()

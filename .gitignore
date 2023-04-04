@@ -40,3 +40,4 @@ __pycache__/**
 
 # don't need this folder
 /chem_space_jmr_1_24_2023/
+/csGraphs/

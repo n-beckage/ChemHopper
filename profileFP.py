@@ -22,14 +22,20 @@ import time
 
 runData = []
 seed = 'C'
-for depth in range(1, 4):
+for depth in range(1, 2):
 	for exhaustive in [True, False]:
 		bgRun=cProfile.Profile()
 		run_params = "buildGraph("+"'"+seed+"'"+","+str(depth)+","+str(exhaustive)+")"
 		start_time = time.time()
 		graph = buildGraph(seed,depth,exhaustive)
 		print(run_params)
-		fae_params = "faerunPlot(graph,'test_graph')"
+		func_stamp = time.time()
+		# get list of smile strings from graph, get corresponding fingerprints list
+		node_labels, fps = get_node_labels_fps(graph)
+		# get the molecular properties nested lists
+		prop_list = getPropList(node_labels)
+		func_time = time.time() - func_stamp
+		fae_params = "faerunPlot(graph,'test_graph',node_labels,fps,prop_list)"
 		bgRun.run(fae_params)
 		end_time = time.time()
 		stats = pstats.Stats(bgRun)
@@ -43,7 +49,8 @@ for depth in range(1, 4):
 			stats.stream = f
 			stats.print_stats()
 			f.write(f"Total faerunPlot time: {stats.total_tt}\n")
-			f.write("Total buildGraph+faerunPlot time: "+reportTime(end_time-start_time))
+			f.write("Total new funcs time: "+reportTime(func_time)+"\n")
+			f.write("Total buildGraph+faerunPlot+funcs time: "+reportTime(end_time-start_time))
 		runData.append([seed,depth,exhaustive,stats.total_tt])
 
 csv_file_name = "Linux_C_plot_Data.csv"
