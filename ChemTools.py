@@ -312,23 +312,24 @@ def configure(receptor,ligand,iteration='test',fname="config",size=20,exhaustive
     config_i=fname+"_"+iteration+'.txt'
     out_name=out+"_"+iteration
     os.chdir('configs')
-    with open(config_i,'w') as f:
-        f.write('receptor = '+receptor+'\n')
-        f.write('ligand = '+ligand+'\n\n')
-        f.write('out = '+out_name+'.pdbqt'+'\n\n')
-        f.write('center_x = '+str(center_x)+'\n')
-        f.write('center_y = '+str(center_y)+'\n')
-        f.write('center_z = '+str(center_z)+'\n\n')
-        f.write('size_x = '+str(size)+'\n')
-        f.write('size_y = '+str(size)+'\n')
-        f.write('size_z = '+str(size)+'\n\n')
-        f.write('exhaustiveness = '+str(exhaustiveness)+'\n\n')
-        f.write('cpu = '+str(cpu)+'\n\n')
-        f.write('num_modes = '+str(num_modes)+'\n\n')
-        f.write('seed = '+str(seed)+'\n\n')
-        f.write('verbosity = '+str(verbosity))
-        if score_only:
-            f.write('\n\nscore_only = true')
+    f = open(config_i,'w')
+    f.write('receptor = '+receptor+'\n')
+    f.write('ligand = '+ligand+'\n\n')
+    f.write('out = '+out_name+'.pdbqt'+'\n\n')
+    f.write('center_x = '+str(center_x)+'\n')
+    f.write('center_y = '+str(center_y)+'\n')
+    f.write('center_z = '+str(center_z)+'\n\n')
+    f.write('size_x = '+str(size)+'\n')
+    f.write('size_y = '+str(size)+'\n')
+    f.write('size_z = '+str(size)+'\n\n')
+    f.write('exhaustiveness = '+str(exhaustiveness)+'\n\n')
+    f.write('cpu = '+str(cpu)+'\n\n')
+    f.write('num_modes = '+str(num_modes)+'\n\n')
+    f.write('seed = '+str(seed)+'\n\n')
+    f.write('verbosity = '+str(verbosity))
+    if score_only:
+        f.write('\n\nscore_only = true')
+    f.close()
     os.chdir('../')
     return config_i,out_name
 
@@ -388,11 +389,12 @@ def dock_it(lig_smile,prot_pdbqt,exhaustiveness=8,iiter='test'):
     configuration,out_name=configure(prot_pdbqt,lig_pdbqt,iiter,exhaustiveness=exhaustiveness,seed=1,verbosity=2)
     # runs vina and logs results
     logfile="logs/log_"+iiter+".txt"
-    with open(logfile,'w') as log:
-        if pf.system()=='Linux':
-            run=sp.run("vina_1.2.3_linux_x86_64 --config=configs/"+configuration,shell=True,stdout=log)
-        elif pf.system()=='Windows':
-            run=sp.run("vina --config=configs/"+configuration,shell=True,stdout=log)
+    log = open(logfile, 'w')
+    if pf.system()=='Linux':
+        run=sp.run("vina_1.2.3_linux_x86_64 --config=configs/"+configuration,shell=True,stdout=log)
+    elif pf.system()=='Windows':
+        run=sp.run("vina --config=configs/"+configuration,shell=True,stdout=log)
+    log.close()
     # splitting output
     sp.call("vina_split --input "+out_name+'.pdbqt',shell=True)
     # deleting the original out file from vina plus all but the best modes from vina_split
@@ -400,18 +402,18 @@ def dock_it(lig_smile,prot_pdbqt,exhaustiveness=8,iiter='test'):
     os.remove(out_name+'.pdbqt')
     # systematically deleting all output ligands other than the best (ligand_1)
     count=2
-    fname=out_name+f'_ligand_{count}.pdbqt'
+    fname = '{}_ligand_{}.pdbqt'.format(out_name, count)
     while os.path.isfile(fname):
         os.remove(fname)
         count+=1
-        fname=out_name+f'_ligand_{count}.pdbqt'
+        fname = '{}_ligand_{}.pdbqt'.format(out_name, count)
     # renaming the best ligand output
     best_out=out_name+"_ligand_1.pdbqt"
     split=best_out.rsplit("_1",1)
     os.rename(best_out,''.join(split))
     # Opening the log file to read in the best affinity
-    with open(logfile,"r") as results:
-        lines=results.readlines()[::-1]
+    results = open(logfile, 'r')
+    lines=results.readlines()[::-1]
     best_mode=[i for i in lines if re.match('\s+1\s',i)][0]
     print("9th line from the end:\n",best_mode)
     s=0
@@ -790,8 +792,23 @@ def check_if_not_real(smiles):
 ##### string seed - the SMILE string of the starting molecule to seed the graph
 ##### int depth - the number of generations to explore
 ##### boolean complete_connections - flag to determine wether or not to add the remaing connections to outermost nodes post-loop
+##### boolean write_to_log - flag todetermine if log file for grpah build should be written. Default True.
 ### returns nx.Graph chemical_space_graph - the completed chemical space graph
-def buildGraph(seed, depth, complete_connections = False):
+def buildGraph(seed, depth, complete_connections = False, write_to_log = True):
+
+    ###
+    # if write_to_log:
+    #     if log_file_name is None:
+    #         log_file_name = f"buildGraph_log_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt"
+    #     log_file = open(log_file_name, "w")
+    #     log_file.write(f"GRAPH PARAMETERS\nSeed: {seed}\nDepth: {depth}\nComplete Connections: {complete_connections}\n\n")
+    ###
+
+    log_file_name = "log_"+seed+"_d"+str(depth)+"_ec"+str(complete_connections)+".txt"
+    if write_to_log:
+        logfile = open(log_file_name, "w")
+        logfile.write(tab([[seed, depth, complete_connections]],headers=['Seed','Depth','Complete Connections'])+'\n')
+
     start_graph_time = time()
     print('GRAPH PARAMETERS')
     print(tab([[seed, depth, complete_connections]],headers=['Seed','Depth','Complete Connections']),'\n')
@@ -828,13 +845,18 @@ def buildGraph(seed, depth, complete_connections = False):
         #set the leaf list to the new one
         leafs=new_leafs
         print("number of leafs for next iter",len(leafs))
-
+        if write_to_log:
+            logfile.write("\nnumber of leafs for next iter: "+str(len(leafs)))
         # estimating and reporting time for next generation of nodes to be added
         expected_time = len(leafs)*np.average(leaf_times)
         print("expected time for next iter:",reportTime(expected_time))
+        if write_to_log:
+            logfile.write("\nexpected time for next iter: "+reportTime(expected_time))
     
     if complete_connections:
         print("all nodes created; now adding remaing edges (expected time above)")
+        if write_to_log:
+            logfile.write("\nall nodes created; now adding remaing edges (expected time above)")
         # it will be most efficient to just add the last remaining connections post-loop, once all nodes are created
         ti = time()
         for leaf in leafs:
@@ -844,12 +866,20 @@ def buildGraph(seed, depth, complete_connections = False):
                     chemical_space_graph.add_edge(leaf,neigh)
         tf = time() - ti
         print("adding final edges actually took:",reportTime(tf))
+        if write_to_log:
+            logfile.write("\nadding final edges actually took: "+reportTime(tf))
 
     build_time = time() - start_graph_time
     print("total build time for this graph:",reportTime(build_time))
 
     print("total number of nodes:",chemical_space_graph.number_of_nodes())
     print("total number of edges",chemical_space_graph.number_of_edges())
+
+    if write_to_log:
+        logfile.write("\ntotal build time for this graph: "+reportTime(build_time))
+        logfile.write("\ntotal number of nodes: "+str(chemical_space_graph.number_of_nodes()))
+        logfile.write("\ntotal number of edges: "+str(chemical_space_graph.number_of_edges()))
+    logfile.close()
 
     return chemical_space_graph
 
