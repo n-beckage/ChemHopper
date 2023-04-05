@@ -20,57 +20,17 @@ csBuilder.add_argument('--plot','-pl',action="store_false",help="option to plot 
 # parses args from terminal
 args = csBuilder.parse_args()
 
-# print("\nWelcome to Chemical Space! Where would you like to begin?\n")
-
-# print("please enter a molecule in the form of a SMILE string.\n")
-
-# bad_smi = True
-# while bad_smi:
-# 	seed = input("GRAPH SEED: ")
-# 	if Chem.MolFromSmiles(seed) is None:
-# 		print(seed,"is not a valid SMILE string. Please try again.")
-# 	elif Chem.MolFromSmiles(seed) is not None:
-# 		bad_smi = False
-
-# print("\nHow deep will the roots go?\n")
-
-# bad_depth = True
-# while bad_depth:
-# 	depth = input("GRAPH DEPTH: ")
-# 	try:
-# 		depth = int(depth)
-# 		bad_depth = False
-# 	except:
-# 		print("Invalid input. Please enter an integer.")
-
-# yn=''
-# while yn not in ['y','Y','n','N']:
-# 	yn = input("\nInclude exhaustive connections? (y/n):")
-# 	if yn in ['y','Y']:
-# 		cc = True
-# 	elif yn in ['n','N']:
-# 		cc = False
-# 	else:
-# 		print(yn,"is invalid input. Please enter y/n")
-
-# print()
-
-
 seed = args.SMILE
 depth = args.depth
 cc = args.exhaustive_connections
 name = args.name
+plot = args.plot
 
-
-########### my old script ###################
-# running buildGraph() with args
-# csg = buildGraph(seed,depth,cc)
-
-# gname = input("Please enter a filename for the graph: ")
-# csg_name = gname+"_d"+str(depth)+"_cc"+str(cc)
-# faerunPlot(csg, csg_name)
 
 ####################### chatGPT ################
+
+
+###### Build the graph ######
 # Record start time
 start_time = time.time()
 
@@ -80,49 +40,58 @@ csg = buildGraph(seed,depth,cc)
 # Record time taken for buildGraph function
 buildGraph_time = time.time() - start_time
 
+### name graph if provided
 if name is None:
 	csg_name = seed+"_d"+str(depth)+"_cc"+str(cc)
 else: csg_name = name+"_d"+str(depth)+"_cc"+str(cc)
 
-func_stamp = time.time()
+##### Plot the Graph #####
+plot_stamp = time.time()
+if plot:
+	# get list of smile strings from graph, get corresponding fingerprints list
+	node_labels, fps = get_node_labels_fps(csg)
+	# Run faerunPlot function:
+	faerunPlot(csg, csg_name,node_labels,fps,prop_list)
+# Record time taken for faerunPlot function
+faerunPlot_time = time.time() - plot_stamp
 
-# get list of smile strings from graph, get corresponding fingerprints list
-node_labels, fps = get_node_labels_fps(csg)
+####################### END chatGPT ################
+
+
+
+##### Save molecular properties data #####
+data_stamp = time.time()
+
+# if the plot argument was given, then plot is false and node_labels must be created
+if plot is False:
+	node_labels = []
+	for smile in csg.nodes():
+		node_labels.append(smile)
+
 # get the molecular properties nested lists
 NHD, NHA, MWT, MLP, MMR, NAT, PSA, qed = getPropList(node_labels)
-prop_list = [NHD, NHA, MWT, MLP, MMR, NAT, PSA, qed]
+prop_list = [s]
 
-func_time = time.time() - func_stamp
+data_time = time.time() - data_stamp
 
-# Record start time for faerunPlot function
-start_time = time.time()
+prop_cols = {"SMILE":node_labels, "nhd":NHD, "nha":NHA, "mwt:":MWT, "mlp":MLP, "mmr":MMR, "nat":NAT, "psa":PSA, "qed":qed}
+df = pd.DataFrame(prop_cols)
+fname = seed + "_d" + str(depth) + "_ec" + str(cc) + ".csv"
+df.to_csv(fname, index=False)
 
-# Run faerunPlot function:
-faerunPlot(csg, csg_name,node_labels,fps,prop_list)
-
-# Record time taken for faerunPlot function
-faerunPlot_time = time.time() - start_time
-
+##### Logging & Results ######
 # Calculate total time taken for entire program
 total_time = buildGraph_time + faerunPlot_time
 
 # Create filename for text file
-filename = seed + "_d" + str(depth) + "_cc" + str(cc) + ".txt"
 log_file_name = "log_"+seed+"_d"+str(depth)+"_ec"+str(cc)+".txt"
 
 # Write data to text file
 # with open(filename, "w") as f:
 f = open(log_file_name, "a")
 f.write("\n\nBuildGraph time: " + reportTime(buildGraph_time) + "\n")
-f.write("faerunPlot time: " + reportTime(faerunPlot_time) + "\n")
-f.write(" CumTime for get_node_labels_fps(), getPropList(): "+reportTime(func_time)+"\n")
+if plot:
+	f.write("faerunPlot time: " + reportTime(faerunPlot_time) + "\n")
+f.write("save data time: "+reportTime(data_time)+"\n")
 f.write("total time: " + reportTime(total_time) + "\n")
 f.close()
-
-
-##### Saving mol_props Data for Later #####
-
-prop_cols = {"SMILE":node_labels, "nhd":NHD, "nha":NHA, "mwt:":MWT, "mlp":MLP, "mmr":MMR, "nat":NAT, "psa":PSA, "qed":qed}
-df = pd.DataFrame(prop_cols)
-fname = filename = seed + "_d" + str(depth) + "_cc" + str(cc) + ".csv"
-df.to_csv(fname, index=False)

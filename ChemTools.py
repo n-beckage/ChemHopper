@@ -8,6 +8,7 @@ from rdkit.Chem import Crippen
 from faerun import Faerun
 import logging
 import matplotlib.pyplot as plt
+from matplotlib.table import Cell
 from mhfp.encoder import MHFPEncoder
 import networkx as nx
 import numpy as np
@@ -940,6 +941,8 @@ def getPropList(node_labels):
         PSA.append(mol_props[6])
         qed.append(QED.default(Chem.MolFromSmiles(node_smiles)))
     return NHD, NHA, MWT, MLP, MMR, NAT, PSA, qed
+
+
 # mol_props - list: a list of properties for a given smile from get_mol_props
 # node_labels - list of all the smiles in the graph
 # fps - corresponding list of all the fingerprints from the graph
