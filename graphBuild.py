@@ -70,7 +70,7 @@ if plot is False:
 
 # get the molecular properties nested lists
 NHD, NHA, MWT, MLP, MMR, NAT, PSA, qed = getPropList(node_labels)
-prop_list = [s]
+prop_list = []
 
 data_time = time.time() - data_stamp
 
