@@ -796,14 +796,6 @@ def check_if_not_real(smiles):
 ### returns nx.Graph chemical_space_graph - the completed chemical space graph
 def buildGraph(seed, depth, complete_connections = False, write_to_log = True):
 
-    ###
-    # if write_to_log:
-    #     if log_file_name is None:
-    #         log_file_name = f"buildGraph_log_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt"
-    #     log_file = open(log_file_name, "w")
-    #     log_file.write(f"GRAPH PARAMETERS\nSeed: {seed}\nDepth: {depth}\nComplete Connections: {complete_connections}\n\n")
-    ###
-
     log_file_name = "log_"+seed+"_d"+str(depth)+"_ec"+str(complete_connections)+".txt"
     if write_to_log:
         logfile = open(log_file_name, "w")
@@ -824,6 +816,7 @@ def buildGraph(seed, depth, complete_connections = False, write_to_log = True):
         new_leafs=[]
         #list of times it took to process a leaf
         leaf_times=[]
+        branch_start = time()
         #loop over all leafs - leafs is the list of molecules whose neighbors have not been generated yet
         for leaf in leafs:
             #get the wall time
@@ -841,9 +834,11 @@ def buildGraph(seed, depth, complete_connections = False, write_to_log = True):
                 #add the edge to the graph
                 chemical_space_graph.add_edge(leaf,mol_smiles)
             #get the difference in wall time
-            leaf_times.append(time()-ti)
+            iter_time = time()-ti
+            leaf_times.append(iter_time)
         #set the leaf list to the new one
         leafs=new_leafs
+        print("actual time for last iter:",reportTime(time() - branch_start))
         print("number of leafs for next iter",len(leafs))
         if write_to_log:
             logfile.write("\nnumber of leafs for next iter: "+str(len(leafs)))
