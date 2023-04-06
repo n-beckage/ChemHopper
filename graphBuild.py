@@ -50,8 +50,9 @@ plot_stamp = time.time()
 if plot:
 	# get list of smile strings from graph, get corresponding fingerprints list
 	node_labels, fps = get_node_labels_fps(csg)
+
 	# Run faerunPlot function:
-	faerunPlot(csg, csg_name,node_labels,fps,prop_list)
+	faerunPlot(csg, csg_name,node_labels,fps)
 # Record time taken for faerunPlot function
 faerunPlot_time = time.time() - plot_stamp
 
@@ -70,7 +71,6 @@ if plot is False:
 
 # get the molecular properties nested lists
 NHD, NHA, MWT, MLP, MMR, NAT, PSA, qed = getPropList(node_labels)
-prop_list = []
 
 data_time = time.time() - data_stamp
 
