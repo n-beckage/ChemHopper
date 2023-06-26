@@ -41,3 +41,6 @@ __pycache__/**
 # don't need these folders
 /chem_space_jmr_1_24_2023/
 /csGraphs/
+
+# DO NOT need to track shop log lol
+SHOPLOG.md
